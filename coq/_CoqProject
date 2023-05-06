@@ -1,0 +1,50 @@
+-R . CBPV
+
+# -install none
+# COQDOCFLAGS = "--charset utf-8 -s --parse-comments --with-header ../website/resources/header.html --with-footer ../website/resources/footer.html --index indexpage"
+
+
+# Autosubst
+axioms.v
+fintype.v
+Syntax.v
+
+# Abstract Reduction Systems
+Base.v
+AbstractReductionSystems.v
+TMT.v
+
+# CBPV
+Terms.v
+Semantics.v
+SyntacticTyping.v
+SemanticTyping.v
+ProgramContexts.v
+ObservationalEquivalence.v
+StrongReduction.v
+StrongNormalisation.v
+Confluence.v
+Eagerlet.v
+LogicalEquivalence.v
+DenotationalSemantics.v
+
+
+# CBV 
+CBV/CBV.v
+CBV/CBV_CBPV.v
+CBV/weakStory.v
+CBV/strongStory.v
+CBV/DenotationalSemantics.v
+
+# CBN 
+CBN/CBN.v
+CBN/CBN_CBPV.v
+CBN/weakStory.v
+CBN/strongStory.v
+CBN/DenotationalSemantics.v
+
+
+
+Termination.v
+EquationalTheory.v
+
