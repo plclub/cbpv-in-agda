@@ -3,9 +3,10 @@ Require Export CBV.
 Import CommaNotation.
 
 Ltac asimpl := repeat (progress (CBV.asimpl; Syntax.asimpl)).
+Tactic Notation "asimpl" "in" hyp(H) := revert H; asimpl; intros H.
 (* Tactic Notation "asimpl" := CBV.auto_unfold; Syntax.auto_unfold; CBV.asimpl'; Syntax.asimpl'; CBV.auto_fold; Syntax.auto_fold. *)
 
-(* Tactic Notation "asimpl" "in" hyp(H) := revert H; asimpl; intros H. *)
+
 
 
 (** Induction scheme for CBV expressions/values *)

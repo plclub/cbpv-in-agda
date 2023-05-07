@@ -4,30 +4,30 @@ Require Import CBN.CBN_CBPV CBN.weakStory.
 
 Lemma subst_pointwise m n (sigma tau : fin m -> value n) s :
   (forall i, star sstep (force (sigma i)) (force (tau i))) ->
-  star sstep ((eval s)[sigma]) ((eval s)[tau]).
+  star sstep (subst_comp sigma (eval s)) (subst_comp tau (eval s)).
 Proof.
   revert n sigma tau. induction s; cbn; intros; eauto.
   all: try now (rewrite IHs; eauto).
   all: try now (rewrite IHs1, IHs2; eauto).
   - rewrite IHs. reflexivity. auto_case.
     asimpl. unfold funcomp.
-    change ((sigma f)⟨↑⟩ !) with (((sigma f)!)⟨↑⟩).
+    change (ren_value shift (sigma f) !) with (ren_comp shift ((sigma f)!)).
     now rewrite H.
   - rewrite !eagerlet_substcomp, IHs1. asimpl.
     rewrite IHs2, IHs3. reflexivity.
     + auto_case.
       unfold funcomp.
-      change ((sigma f)⟨fun x : fin n => ↑ (↑ x)⟩ !) with ((sigma f)! ⟨fun x : fin n => ↑ (↑ x)⟩ ).
+      change (ren_value (fun x => shift (shift x)) (sigma f) !) with (ren_comp (fun x => shift (shift x)) ((sigma f)!)  ).
       now rewrite H.
     + auto_case.
       unfold funcomp.
-      change ((sigma f)⟨fun x : fin n => ↑ (↑ x)⟩ !) with ((sigma f)! ⟨fun x : fin n => ↑ (↑ x)⟩ ).
+      change (ren_value (fun x => shift (shift x)) (sigma f) !) with (ren_comp (fun x => shift (shift x)) ((sigma f)!)  ).
       now rewrite H.
     + eauto.
 Qed.
 
 Lemma subst_pres m n (sigma : fin m -> exp n) s :
-  star sstep ((eval s)[eval_subst sigma]) (eval (s[sigma])).
+  star sstep (subst_comp (eval_subst sigma) (eval s)) (eval (subst_exp sigma s)).
 Proof.
   revert n sigma. induction s; cbn; intros; eauto.
   - unfold eval_subst. destruct (sigma f); eauto.
@@ -41,7 +41,7 @@ Proof.
     eapply proper_eagerlet_star_ssstep_R. reflexivity.
     rewrite <-IHs2, <-IHs3.
     eapply refl_star. asimpl. f_equal.
-    all: change (_ .: sigma >> ⟨↑⟩) with (up_exp_exp sigma).
+    all: change (_ .: sigma >> ren_exp shift) with (up_exp_exp sigma).
     all: rewrite <-eval_subst_up_value_value; asimpl.
     all: reflexivity. 
 Qed.
@@ -57,7 +57,7 @@ Inductive Step {n} : exp n -> exp n -> Prop :=
 
   | StepApp1 (M : exp n) M' N : Step M M' -> Step (App M N) (App M' N)
   | StepApp2 (M : exp n) N N' : Step N N' -> Step (App M N) (App M N')
-  | StepAppLam (M : exp (S n)) M' (N: exp n): M' = M[N..] -> Step (App ((Lam M)) (N)) M'
+  | StepAppLam (M : exp (S n)) M' (N: exp n): M' = subst_exp (N..) M -> Step (App ((Lam M)) (N)) M'
 
   | StepPair1 (M M' N : exp n) : Step M M' -> Step (Pair M N) (Pair M' N)
   | StepPair2 (M N N' : exp n) : Step N N' -> Step (Pair M N) (Pair M N')
@@ -70,7 +70,7 @@ Inductive Step {n} : exp n -> exp n -> Prop :=
   | StepCaseS1 (M : exp n) M' N1 N2 : Step M M' -> Step (CaseS M N1 N2) (CaseS M' N1 N2)
   | StepCaseS2 (M : exp n)  (N1 N1' : exp (S n)) N2 : @Step _ N1 N1' -> Step (CaseS M N1 N2) (CaseS M N1' N2)
   | StepCaseS3 (M : exp n)  N1 N2 N2' : @Step (S n) N2 N2' -> Step (CaseS M N1 N2) (CaseS M N1 N2')
-  | StepCaseS b (M : exp n)  N1  N2 : Step (CaseS (Inj b M) N1 N2) (if b then N1 else N2)[M..]
+  | StepCaseS b (M : exp n)  N1  N2 : Step (CaseS (Inj b M) N1 N2) (subst_exp (M..) (if b then N1 else N2))
 where "s ≫ t" := (@Step _ s t).
 Hint Constructors Step.
 
@@ -87,7 +87,7 @@ Ltac dostep :=
   end.
 
 Lemma beta_step_preserved m (s : exp (S m)) (t : exp m) :
-  star sstep ((eval s)[(thunk (eval t))..]) (eval (s[t..])).
+  star sstep (subst_comp ((thunk (eval t))..) (eval s)) (eval (subst_exp (t..) s)).
 Proof.
   rewrite <- (subst_pres _ _ (t..) s).
   erewrite subst_pointwise. reflexivity.

@@ -3,6 +3,8 @@ Require Export Eagerlet.
 Import CommaNotation.
 
 Ltac asimpl := repeat (progress (CBN.asimpl; Syntax.asimpl)).
+Tactic Notation "asimpl" "in" hyp(J) := revert J; asimpl; intros J.
+
 
 
 Lemma computation_typing_ext n Gamma Gamma' (C : comp n) A :

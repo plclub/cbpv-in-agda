@@ -6,13 +6,13 @@ Import CommaNotation.
 Inductive Step : forall {n}, Exp n -> Exp n -> Prop :=
   | StepApp1 n (M : Exp n) M' N : Step M M' -> Step (App M N) (App M' N)
   | StepApp2 n (V : Value n) N N' : Step N N' -> Step (App (Val V) N) (App (Val V) N')
-  | StepAppLam n (M : Exp (S n)) M' (N: Value n): M' = M[N..] -> Step (App (Val (Lam M)) (Val N)) M'
+  | StepAppLam n (M : Exp (S n)) M' (N: Value n): M' = subst_Exp (N..) M -> Step (App (Val (Lam M)) (Val N)) M'
 
   | StepCaseS1 n (M : Exp n) M' N1 N2 : Step M M' -> Step (CaseS M N1 N2) (CaseS M' N1 N2)
-  | StepCaseS n (b: bool) V (N1 N2 : Exp (S n)) M : M = (if b then N1 else N2)[V..] -> Step (CaseS (Val (Inj b V)) N1 N2) M
+  | StepCaseS n (b: bool) V (N1 N2 : Exp (S n)) M : M = subst_Exp (V..) (if b then N1 else N2) -> Step (CaseS (Val (Inj b V)) N1 N2) M
 
   | StepCaseP1 n (M : Exp n) M' N : Step M M' -> Step (CaseP M N) (CaseP M' N)
-  | StepCaseP n N (N' : Exp n) V1 V2: N' = N[V2,V1..]  -> Step (CaseP (Val (Pair V1 V2)) N) N'.
+  | StepCaseP n N (N' : Exp n) V1 V2: N' = subst_Exp (V2,V1..) N  -> Step (CaseP (Val (Pair V1 V2)) N) N'.
 
 Hint Constructors Step.
 
@@ -78,7 +78,7 @@ Proof.
       eapply IHs1; eauto. intros s1' H. eapply A. eauto.
     + rewrite eagerlet_substcomp in H. letc_step_inv.
       * inv H. inv H0. eauto.
-        asimpl in *. 
+        asimpl in *.
         asimpl in H3. destruct s1; inv e; try (now repeat smartinv).
         eapply IHs2; eauto. intros s2' H. eapply A. eauto.
       * asimpl in *. asimpl in e0.  
