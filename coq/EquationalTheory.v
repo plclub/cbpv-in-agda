@@ -147,7 +147,7 @@ Qed.
 
 (* uses weak normalisation *)
 Lemma eta_lambda n (M: Syntax.comp (S n)) Gamma A B:
-  Gamma ⊢ M : A → B ->  Gamma ⊨ M ∼ lambda (M⟨↑⟩ (var 0)) : A → B.
+  Gamma ⊢ M : A → B ->  Gamma ⊨ M ∼ lambda (ren_comp shift M (var 0)) : A → B.
 Proof.
   intros H ????. specialize (fundamental_property_comp H H0) as H1.
   unfold var; cbn [nat_to_fin]; asimpl.
@@ -179,7 +179,7 @@ Qed.
 Lemma eta_caseS n (V: value n) (M: Syntax.comp (S n)) Gamma A1 A2 C:
   Gamma ⊩ V : Sigma A1 A2 ->
   Sigma A1 A2 .: Gamma ⊢ M : C ->
-  Gamma ⊨ M[V..] ∼ caseS V (M[sub (inj true zero)]) (M[sub (inj false zero)]) : C.
+  Gamma ⊨ subst_comp (V..) M ∼ caseS V (subst_comp (sub (inj true zero)) M) (subst_comp (sub (inj false zero)) M) : C.
 Proof.
   intros X Y. 
   intros ? ? ? ?.
@@ -200,7 +200,7 @@ Qed.
 Lemma eta_caseP n (V: value n) (M: Syntax.comp (S n)) Gamma A1 A2 C:
   Gamma ⊩ V : A1 * A2 ->
   A1 * A2 .: Gamma ⊢ M : C ->
-  Gamma ⊨ M[V..] ∼ caseP V (M[sub₂ (pair one zero)]) : C.
+  Gamma ⊨ subst_comp (V..) M ∼ caseP V (subst_comp (sub₂ (pair one zero)) M) : C.
 Proof.
   intros X Y. 
   intros ? ? ? ?.
@@ -218,7 +218,7 @@ Qed.
 
 Lemma commute_let_let n (M1: Syntax.comp n) (M2 M3: Syntax.comp (S n)) Gamma  C:
   Gamma ⊢ $ <- ($ <- M1; M2); M3 : C ->
-  Gamma ⊨ $ <- ($ <- M1; M2); M3 ∼ $ <- M1; ($ <- M2; M3[var 0 .: (↑ >> (↑ >> ids))]) : C.
+  Gamma ⊨ $ <- ($ <- M1; M2); M3 ∼ $ <- M1; ($ <- M2; subst_comp (var 0 .: (↑ >> (↑ >> ids))) M3) : C.
 Proof.
   intros H. inv H. inv X.
   unfold var; cbn. 
@@ -242,7 +242,7 @@ Qed.
 (** uses weak normalisation *)
 Lemma commute_let_lam n (M: Syntax.comp n) (N: Syntax.comp (S (S n))) Gamma A B:
   Gamma ⊢ $ <- M; lambda N : A → B ->
-  Gamma ⊨ $ <- M; lambda N ∼ lambda ($ <- M⟨↑⟩; N[swap]) : A → B.
+  Gamma ⊨ $ <- M; lambda N ∼ lambda ($ <- ren_comp ↑ M; subst_comp swap N) : A → B.
 Proof.
   intros H. inv H. inv X0.
   unfold swap, var; cbn.
@@ -289,7 +289,7 @@ Qed.
 
 Lemma commute_let_app B n Gamma c1 (c2: Syntax.comp (S n)) v:
   Gamma ⊢ (($ <- c1; c2) v) : B ->
-  Gamma ⊨ (($ <- c1; c2) v) ∼ ($ <- c1; c2 v⟨↑⟩) : B.
+  Gamma ⊨ (($ <- c1; c2) v) ∼ ($ <- c1; c2 (ren_value ↑ v)) : B.
 Proof.
   intros ? ? ? ? ?.  inv X. inv X0. asimpl.
   eapply bind with (K1 := ectxApp (ectxLetin Semantics.ectxHole _) _)
@@ -303,7 +303,7 @@ Qed.
 Lemma commute_caseS_lambda A B n Gamma c1 (c2: Syntax.comp (S (S n))) v:
   Gamma ⊢ caseS v (lambda c1) (lambda c2) : A → B ->
   Gamma ⊨ caseS v (lambda c1) (lambda c2) ∼
-    lambda (caseS v⟨↑⟩ c1[swap] c2[swap])
+    lambda (caseS (ren_value ↑ v) (subst_comp swap c1) (subst_comp swap c2))
   : A → B.
 Proof.
   intros H ? ? ? ?. inv H.

@@ -10,16 +10,16 @@ Inductive Step {n} :  Exp n -> Exp n -> Prop :=
 
   | StepApp1 (M : Exp n) M' N : Step M M' -> Step (App M N) (App M' N)
   | StepApp2  (M : Exp n) N N' : Step N N' -> Step (App M N) (App M N')
-  | StepAppLam  (M : Exp (S n)) M' (N: Value n): M' = M[N..] -> Step (App (Val (Lam M)) (Val N)) M'
+  | StepAppLam  (M : Exp (S n)) M' (N: Value n): M' = (subst_Exp (N..) M) -> Step (App (Val (Lam M)) (Val N)) M'
 
   | StepCaseS1  (M : Exp n) M' N1 N2 : Step M M' -> Step (CaseS M N1 N2) (CaseS M' N1 N2)
   | StepCaseS2   : forall (M : Exp n)  (N1 N1' : Exp (S n)) N2,  @Step (S n) N1 N1' -> Step (CaseS M N1 N2) (CaseS M N1' N2)
   | StepCaseS3  (M : Exp n)  N1 N2 N2' : @Step (S n) N2 N2' -> Step  (CaseS M N1 N2) (CaseS M N1 N2')
-  | StepCaseS  (b: bool) V (N1 N2 : Exp (S n)) M : M = (if b then N1 else N2)[V..] -> Step (CaseS (Val (Inj b V)) N1 N2) M
+  | StepCaseS  (b: bool) V (N1 N2 : Exp (S n)) M : M = subst_Exp (V..) (if b then N1 else N2) -> Step (CaseS (Val (Inj b V)) N1 N2) M
 
   | StepCaseP1  (M : Exp n) M' N : Step M M' -> Step (CaseP M N) (CaseP M' N)
   | StepCaseP2  (M : Exp n)  (N N' : Exp (S (S n))) : @Step (S (S n)) N N' -> Step (CaseP M N) (CaseP M N')
-  | StepCaseP  N (N' : Exp n) V1 V2: N' = N[V2,V1..]  -> Step (CaseP (Val (Pair V1 V2)) N) N'
+  | StepCaseP  N (N' : Exp n) V1 V2: N' = subst_Exp (V2,V1..) N  -> Step (CaseP (Val (Pair V1 V2)) N) N'
 with StepVal {n} : Value n -> Value n -> Prop :=
   | StepLam  (M M': Exp (S n)): @Step (S n) M M' -> StepVal (Lam M) (Lam M')
 
@@ -162,7 +162,7 @@ Proof.
 Qed.
 
 Lemma pstep_value_preserves_ren n (s s': Syntax.comp n) n' (xi : fin n -> fin n'):
-  pstep s s' -> pstep (s⟨xi⟩) (s'⟨xi⟩).
+  pstep s s' -> pstep (ren_comp xi s) (ren_comp xi s').
 Proof.
   destruct 1; simpl; try (now constructor).
   all: asimpl; constructor; try destruct b.
@@ -172,8 +172,8 @@ Qed.
 
 Lemma sstep_value_preserves_ren :
   forall n, (forall (c c': Syntax.comp n), sstep c c' -> forall n' (xi: fin n -> fin n'),
-             sstep (c⟨xi⟩) (c'⟨xi⟩)) /\ (forall (v v': value n), sstep_value v v' -> forall n' (xi : fin n -> fin n'),
-            sstep_value (v⟨xi⟩) (v'⟨xi⟩)).
+             sstep (ren_comp xi c) (ren_comp xi c')) /\ (forall (v v': value n), sstep_value v v' -> forall n' (xi : fin n -> fin n'),
+            sstep_value (ren_value xi v) (ren_value xi v')).
 Proof.
   apply mutind_sstep; intros; simpl; eauto; try now constructor.
   - constructor. now apply pstep_value_preserves_ren.
@@ -181,7 +181,7 @@ Qed.
 
 
 Lemma plus_sstep_value_preserves n (v v': value n):
-  plus sstep_value v v' -> plus sstep_value (v⟨↑⟩) (v'⟨↑⟩).
+  plus sstep_value v v' -> plus sstep_value (ren_value shift v) (ren_value shift v').
 Proof.
   induction 1; eauto using plus.
   - constructor. now apply sstep_value_preserves_ren.
