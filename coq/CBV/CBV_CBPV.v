@@ -2,9 +2,10 @@ Require Export Eagerlet.
 Require Export CBV.
 Import CommaNotation.
 
-Tactic Notation "asimpl" := CBV.auto_unfold; Syntax.auto_unfold; CBV.asimpl'; Syntax.asimpl'; CBV.auto_fold; Syntax.auto_fold.
+Ltac asimpl := repeat (progress (CBV.asimpl; Syntax.asimpl)).
+(* Tactic Notation "asimpl" := CBV.auto_unfold; Syntax.auto_unfold; CBV.asimpl'; Syntax.asimpl'; CBV.auto_fold; Syntax.auto_fold. *)
 
-Tactic Notation "asimpl" "in" hyp(H) := revert H; asimpl; intros H.
+(* Tactic Notation "asimpl" "in" hyp(H) := revert H; asimpl; intros H. *)
 
 
 (** Induction scheme for CBV expressions/values *)
@@ -69,12 +70,13 @@ with eval_exp {n: nat} (M: Exp n) : Syntax.comp n :=
   match M with
   | Val V => ret (eval_val V)
   | App M N => $$ <- eval_exp M;
-              $$ <- (eval_exp N)⟨↑⟩;
-              app (force (var_value (shift var_zero))) (var_value var_zero)
+              $$ <- (ren_comp shift (eval_exp N));
+             (* Need to explicitly qualify app because app is used in List *)
+              Syntax.app (force (var_value (shift var_zero))) (var_value var_zero)
   | CaseS M N1 N2 => $$ <- eval_exp M;
-                      caseS (var_value var_zero) ((eval_exp N1)⟨up_ren⟩) ((eval_exp N2)⟨up_ren⟩)
+                      caseS (var_value var_zero) (ren_comp up_ren (eval_exp N1)) (ren_comp up_ren (eval_exp N2))
   | CaseP M N => $$ <- eval_exp M;
-                  caseP (var_value var_zero) ((eval_exp N)⟨up2_ren⟩)
+                  caseP (var_value var_zero) (ren_comp up2_ren (eval_exp N))
   end.
 
 Fixpoint typingVal_pres {n} (Gamma : ctx_cbv n) V A (H : Gamma ⊩v V : A) :
@@ -117,8 +119,8 @@ Qed.
 
 Lemma trans_ren_val':
   forall m,
-    (forall (M: Exp m), forall n (xi : fin m -> fin n), eval_exp (M⟨xi⟩) = (eval_exp M)⟨xi⟩)
-    /\ (forall (V: Value m), forall n (xi : fin m -> fin n), eval_val (V⟨xi⟩) = (eval_val V)⟨xi⟩).
+    (forall (M: Exp m), forall n (xi : fin m -> fin n), eval_exp (ren_Exp xi M) = ren_comp xi (eval_exp M))
+    /\ (forall (V: Value m), forall n (xi : fin m -> fin n), eval_val (ren_Value xi V) = ren_value xi (eval_val V)).
 Proof.
   apply ExpVal_ind; intros; simpl; asimpl; try congruence.
   + rewrite H, H0, !eagerlet_rencomp.
@@ -131,21 +133,20 @@ Qed.
 
 Lemma trans_ren_val :
   forall m,
-    (forall (V: Value m), forall n (xi : fin m -> fin n), eval_val (V⟨xi⟩) = (eval_val V)⟨xi⟩).
+    (forall (V: Value m), forall n (xi : fin m -> fin n), eval_val (ren_Value xi V) = ren_value xi (eval_val V)).
 Proof. now apply trans_ren_val'. Qed.
 
 Lemma trans_ren_exp :
   forall m,
-    (forall (M: Exp m), forall n (xi : fin m -> fin n), eval_exp (M⟨xi⟩) = (eval_exp M)⟨xi⟩).
+    (forall (M: Exp m), forall n (xi : fin m -> fin n), eval_exp (ren_Exp xi M) = ren_comp xi (eval_exp M)).
 Proof. now apply trans_ren_val'. Qed.
 
 Lemma trans_subst_val':
   forall m,
-    (forall (M: Exp m), forall n (sigma : fin m -> Value n), eval_exp (M[sigma]) = (eval_exp M)[sigma >> eval_val])
-    /\ (forall (V: Value m), forall n (sigma : fin m -> Value n), eval_val (V[sigma]) = (eval_val V)[sigma >> eval_val]).
+    (forall (M: Exp m), forall n (sigma : fin m -> Value n), eval_exp (subst_Exp sigma M) = subst_comp (sigma >> eval_val) (eval_exp M))
+    /\ (forall (V: Value m), forall n (sigma : fin m -> Value n), eval_val (subst_Value sigma V) = subst_value (sigma >> eval_val) (eval_val V)).
 Proof.
   apply ExpVal_ind; intros; simpl; asimpl; try congruence.
-  + reflexivity.
   + repeat f_equal. rewrite H.
     asimpl. repeat f_equal.
     fext. intros x. apply trans_ren_val.
@@ -162,14 +163,14 @@ Qed.
 
 Lemma trans_subst_val:
   forall m,
-    (forall (V: Value m), forall n (sigma : fin m -> Value n), eval_val (V[sigma]) = (eval_val V)[sigma >> eval_val]).
+    (forall (V: Value m), forall n (sigma : fin m -> Value n), eval_val (subst_Value sigma V) = subst_value (sigma >> eval_val) (eval_val V)).
 Proof.
   apply trans_subst_val'.
 Qed.
 
 Lemma trans_subst_exp:
   forall m,
-    (forall (M: Exp m), forall n (sigma : fin m -> Value n), eval_exp (M[sigma]) = (eval_exp M)[sigma >> eval_val]).
+    (forall (M: Exp m), forall n (sigma : fin m -> Value n), eval_exp (subst_Exp sigma M) = subst_comp (sigma >> eval_val) (eval_exp M)).
 Proof.
   apply trans_subst_val'.
 Qed.

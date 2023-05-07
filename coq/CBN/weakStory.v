@@ -6,13 +6,13 @@ Import CommaNotation.
 Reserved Notation "s ≫ t" (at level 60).
 Inductive Step {n} : exp n -> exp n -> Prop :=
   | StepApp1 (M : exp n) M' N : Step M M' -> Step (App M N) (App M' N)
-  | StepAppLam (M : exp (S n)) M' (N: exp n): M' =  M[N..] -> Step (App ((Lam M)) (N)) M'
+  | StepAppLam (M : exp (S n)) M' (N: exp n): M' =  subst_exp (N..) M -> Step (App ((Lam M)) (N)) M'
 
   | StepProj b (M M' : exp n) : Step M M' -> Step (Proj b M) (Proj b M')
   | StepProjPair b (M M' : exp n) : Step (Proj b (Pair M M')) (if b then M else M')
 
   | StepCaseS1 (M : exp n) M' N1 N2 : Step M M' -> Step (CaseS M N1 N2) (CaseS M' N1 N2)
-  | StepCaseS b (M : exp n)  N1  N2 : Step (CaseS (Inj b M) N1 N2) (if b then N1 else N2)[M..]
+  | StepCaseS b (M : exp n)  N1  N2 : Step (CaseS (Inj b M) N1 N2) (subst_exp (M..) (if b then N1 else N2))
 where "s ≫ t" := (Step s t).
 Hint Constructors Step.
 
@@ -36,7 +36,7 @@ Qed.
 
 (** ** Forward Simulation *)
 Lemma trans_beta  (n : nat) (t0 : exp n) (M0 : exp (S n)) (N : comp n) (M : comp (S n)) :
-            M0 ↦n M -> t0 ↦n N -> M0[t0..] ↦n M[<{ N }>..].
+            M0 ↦n M -> t0 ↦n N -> subst_exp (t0..) M0 ↦n subst_comp (<{ N }>..) M.
 Proof.
   intros.
   eapply trans_subst. eauto. intros []; cbn.
@@ -52,7 +52,7 @@ Proof.
     exists (app C' (thunk N)). split; eauto using inhab.
     now trewrite H.
   - clear IHX1 IHX2. remember (Lam M0). induction X1; try congruence.
-    + inv Heqe. exists (M[(thunk N) ..]). split.
+    + inv Heqe. exists (subst_comp ((thunk N) ..) M). split.
       * econstructor. now eapply trans_beta.
       * eauto.
     + eapply IHX1 in Heqe as (C' & [] & ?); eauto.
@@ -73,10 +73,10 @@ Proof.
   - clear IHX1 IHX2 IHX3. remember (Inj b M0); induction X1; try congruence.
     + inv Heqe.
       destruct b.
-      * exists (N1[(thunk M)..]); split; eauto using inhab.
+      * exists (subst_comp ((thunk M)..) N1); split; eauto using inhab.
         -- econstructor. now eapply trans_beta.
         -- eapply step_star_plus. cbn. eauto. now asimpl.
-      * exists (N2[(thunk M)..]); split; eauto using inhab.
+      * exists (subst_comp ((thunk M)..) N2); split; eauto using inhab.
         -- econstructor. now eapply trans_beta.
         -- eapply step_star_plus. cbn. eauto. now asimpl.
     + eapply (IHX1 t1 t2)  in Heqe as (C' & [] & ?); eauto.
@@ -180,7 +180,7 @@ Qed.
 
 Lemma refines_beta:
   forall (n : nat) (N1 : comp (S n)) (M : comp n) (t1 : exp (S n)) (s : exp n),
-    N1 ⋙ t1 -> M ⋙ s -> N1[<{ M }> ..] ⋙ t1[s..].
+    N1 ⋙ t1 -> M ⋙ s -> subst_comp (<{ M }> ..) N1 ⋙ subst_exp (s..) t1.
 Proof.
   intros.
   eapply refines_subst. eauto. intros []; cbn.
@@ -237,7 +237,7 @@ Proof.
     exists (app C' (thunk N)). split; eauto using inhab.
     now trewrite H.
   - clear IHX1 IHX2. remember (Lam M0). induction X1; try congruence.
-    + inv Heqe. exists (M [(thunk N)..]). split.
+    + inv Heqe. exists (subst_comp ((thunk N) ..) M). split.
       * econstructor. now eapply refines_beta.
       * eauto.
     + eapply IHX1 in Heqe as (C' & [] & ?); eauto.
@@ -258,10 +258,10 @@ Proof.
   - clear IHX1 IHX2 IHX3. remember (Inj b M0); induction X1; try congruence.
     + inv Heqe.
       destruct b.
-      * exists (N1 [(thunk M)..]); split; eauto using inhab.
+      * exists (subst_comp ((thunk M)..) N1); split; eauto using inhab.
         -- econstructor. now eapply refines_beta.
         -- econstructor 2. eauto. cbn. eapply step_star_plus. eauto. now asimpl.
-      * exists (N2 [(thunk M)..]); split; eauto using inhab.
+      * exists (subst_comp ((thunk M)..) N2); split; eauto using inhab.
         -- econstructor. now eapply refines_beta.
         -- econstructor 2. eauto. cbn. eapply step_star_plus. eauto. now asimpl.
     + eapply (IHX1 t1 t2)  in Heqe as (C' & [] & ?); eauto.
@@ -269,10 +269,10 @@ Proof.
       econstructor 2; eauto.
   - inv X1. inv H4. inv H4.
   - inv X1. destruct b.
-    + exists (N1 [(thunk M0)..]); split; eauto using inhab.
+    + exists (subst_comp ((thunk M0)..) N1); split; eauto using inhab.
       * econstructor. now eapply refines_beta.
       * eapply step_star_plus. eauto. now asimpl.
-    + exists (N2 [(thunk M0)..]); split; eauto using inhab.
+    + exists (subst_comp ((thunk M0)..) N2); split; eauto using inhab.
       * econstructor. now eapply refines_beta.
       * eapply step_star_plus. eauto. now asimpl.
   - eapply IHX in H as (C' & [] & ?).
