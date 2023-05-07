@@ -11,4 +11,4 @@ The paper and the compiled HTML version of the Coq files can be found at https:/
 
 ## How to compile the code
 
-`make` should do the job. The files are tested to compile with `The Coq Proof Assistant, version 8.16.1` and `autosubst2 8a71e1d` [https://github.com/uds-psl/autosubst2/tree/8a71e1dc4dea81f13a9572ea302064eb374566c6].
+`make` should do the job. The files are tested to compile with `The Coq Proof Assistant, version 8.16.1` and `autosubst2 8a71e1d` <https://github.com/uds-psl/autosubst2/tree/8a71e1dc4dea81f13a9572ea302064eb374566c6>.
