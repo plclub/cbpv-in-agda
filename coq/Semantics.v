@@ -22,15 +22,15 @@ Inductive pstep {n: nat}: comp n -> comp n -> Prop :=
 | pstepForce (c: comp n):
     <{c}>! ≽ c
 | pstepApp (c: comp (S n)) (c': comp n) v:
-    c[v..] = c' -> (lambda c) v ≽ c'
+    subst_comp (v..) c = c' -> (lambda c) v ≽ c'
 | pstepProj (b: bool) (c c1 c2: comp n) :
     (c = if b then c1 else c2) -> proj b (tuple c1 c2) ≽ c
 | pstepLetin (c: comp (S n)) c' v:
-    c[v..] = c' -> $ <- (ret v); c ≽ c'
+    subst_comp (v..) c = c' -> $ <- (ret v); c ≽ c'
 | pstepCaseS v (b: bool) c (c1 c2: comp (S n)):
-    (if b then c1 else c2)[v..] = c -> caseS (inj b v) c1 c2 ≽ c
+    subst_comp (v..) (if b then c1 else c2) = c -> caseS (inj b v) c1 c2 ≽ c
 | pstepCaseP v1 v2 (c: comp (S (S n))) c':
-    c[v2,v1..] = c' -> caseP (pair v1 v2) c ≽ c'
+    subst_comp (v2,v1..) c = c' -> caseP (pair v1 v2) c ≽ c'
 where "A '≽' B" := (pstep A B).
 
 
@@ -80,14 +80,14 @@ Inductive bigstep {n: nat}: comp n -> comp n -> Prop :=
 | bigstepLambda (c: comp (S n)) : lambda c ▷ lambda c
 | bigstepTuple (c1 c2: comp n): tuple c1 c2 ▷ tuple c1 c2
 | bigstepForce (c c': comp n): c ▷ c' -> <{c}>! ▷ c'
-| bigstepApp (c c'': comp n) c' v: c ▷ lambda c' -> c'[v..] ▷ c'' -> c v ▷ c''
+| bigstepApp (c c'': comp n) c' v: c ▷ lambda c' -> subst_comp (v..) c' ▷ c'' -> c v ▷ c''
 | bigstepProj c c' (c1 c2: comp n) (b: bool):
     c ▷ tuple c1 c2 -> (if b then c1 else c2) ▷ c' -> proj b c ▷ c'
-| bigstepLetin c1 (v: value n) c2 c: c1 ▷ ret v -> c2[v..] ▷ c -> $ <- c1; c2 ▷ c
+| bigstepLetin c1 (v: value n) c2 c: c1 ▷ ret v -> subst_comp (v..) c2 ▷ c -> $ <- c1; c2 ▷ c
 | bigstepCaseS c c1 c2 (b: bool) (v: value n):
-    (if b then c1 else c2)[v..] ▷ c -> caseS (inj b v) c1 c2 ▷ c
+  subst_comp (v..) (if b then c1 else c2) ▷ c -> caseS (inj b v) c1 c2 ▷ c
 | bigstepCaseP c c' (v1 v2: value n):
-    c[v2,v1..] ▷ c' -> caseP (pair v1 v2) c ▷ c'
+    subst_comp (v2,v1..) c ▷ c' -> caseP (pair v1 v2) c ▷ c'
 where "A ▷ B" := (bigstep A B).
 
 Hint Constructors bigstep.
@@ -138,7 +138,7 @@ Ltac reduce := econstructor 2; [ solve [eauto] | cbn ].
 
 (** Substitution Primitive Step *)
 Lemma pstep_subst m n (C1 C2: comp m) (f: fin m -> value n):
-  C1 ≽ C2 -> C1[f] ≽ C2[f].
+  C1 ≽ C2 -> subst_comp f C1 ≽ subst_comp f C2.
 Proof.
   intros H; inv H; cbn; constructor; try destruct b; asimpl; reflexivity.
 Qed.

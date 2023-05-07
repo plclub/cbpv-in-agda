@@ -112,9 +112,9 @@ Hint Resolve typeVar'.
 
 (** Type preservation under renaming  *)
 Fixpoint value_typepres_renaming n Gamma v A (H: Gamma ⊩ v : A)  m (delta: fin n -> fin m) Delta {struct H}:
-  (forall i, Gamma i = Delta (delta i)) -> Delta ⊩ v⟨delta⟩ : A
+  (forall i, Gamma i = Delta (delta i)) -> Delta ⊩ ren_value delta v : A
 with comp_typepres_renaming n Gamma c B (H: Gamma ⊢ c : B) m (delta: fin n -> fin m) Delta {struct H}:
-  (forall i, Gamma i = Delta (delta i)) -> Delta ⊢ c⟨delta⟩ : B.
+  (forall i, Gamma i = Delta (delta i)) -> Delta ⊢ ren_comp delta c : B.
 Proof.
   all: destruct H; cbn; intros; eauto; econstructor; eauto;
     eapply comp_typepres_renaming; eauto.
@@ -124,9 +124,9 @@ Qed.
 
 (** Type preservation under substitution  *)
 Fixpoint value_typepres_substitution n (Gamma: ctx n) v A (H: Gamma ⊩ v : A)  m (sigma: fin n -> value m) Delta {struct H}:
-  (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊩ v[sigma] : A
+  (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊩ subst_value sigma v : A
 with comp_typepres_substitution n (Gamma: ctx n) c B (H: Gamma ⊢ c : B) m (sigma: fin n -> value m) Delta {struct H}:
-  (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊢ c[sigma] : B.
+  (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊢ subst_comp sigma c : B.
 Proof.
     all: destruct H; cbn; intros; eauto; econstructor; eauto.
     all: eapply comp_typepres_substitution; eauto.
@@ -137,9 +137,9 @@ Qed.
 (** ** Preservation *)
 (** Type preservation under beta reduction  *)
 Lemma typepres_beta {n: nat} (Gamma: fin n -> valtype) c v A B:
-  A .: Gamma ⊢ c : B -> Gamma ⊩ v : A -> Gamma ⊢ c[v..] : B.
+  A .: Gamma ⊢ c : B -> Gamma ⊩ v : A -> Gamma ⊢ subst_comp (v..) c : B.
 Proof.
-  intros H1 H2; eapply (comp_typepres_substitution H1); intros []; cbn; eauto.
+  intros H1 H2; eapply (comp_typepres_substitution H1); intros []; cbn; asimpl; eauto.
 Qed.
 
 

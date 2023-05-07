@@ -38,7 +38,7 @@ with C (B: comptype) {n: nat} (c1 c2: comp n) :=
   | cone => c1 = cu /\ c2 = cu
   | Pi B1 B2 => exists c1' c1'' c2' c2'',
               c1 = tuple c1' c1'' /\ c2 = tuple c2' c2'' /\ E' (C B1) c1' c2' /\ E' (C B2) c1'' c2''
-  | A → B => exists c1' c2', c1 = lambda c1' /\ c2 = lambda c2' /\ forall v1 v2, V A v1 v2 -> E' (C B) (c1'[v1..]) (c2'[v2..])
+  | A → B => exists c1' c2', c1 = lambda c1' /\ c2 = lambda c2' /\ forall v1 v2, V A v1 v2 -> E' (C B) (subst_comp (v1..) c1') (subst_comp (v2..) c2')
   | F A => exists v1 v2, c1 = ret v1 /\ c2 = ret v2 /\ V A v1 v2
   end.
 
@@ -50,12 +50,12 @@ Definition G {n: nat} (Gamma : ctx n) {m: nat} (gamma gamma': fin n -> value m) 
  forall i A, Gamma i = A -> V A (gamma i) (gamma' i).
 
 Definition val_semeq {n: nat} (Gamma: ctx n) (A: valtype) (v1 v2: value n)  :=
-  forall m (gamma gamma': fin n -> value m), G Gamma gamma gamma' -> V A (v1[gamma]) (v2[gamma']).
+  forall m (gamma gamma': fin n -> value m), G Gamma gamma gamma' -> V A (subst_value gamma v1) (subst_value gamma' v2).
 
 Notation "Gamma ⊫ v1 ∼ v2 : A" := (val_semeq Gamma A v1 v2) (at level 80, v2 at level 99).
 
 Definition comp_semeq {n: nat} (Gamma: ctx n) (B: comptype) (c1 c2: comp n) :=
-  forall m (gamma gamma': fin n -> value m), G Gamma gamma gamma' -> E B (c1[gamma]) (c2[gamma']).
+  forall m (gamma gamma': fin n -> value m), G Gamma gamma gamma' -> E B (subst_comp gamma c1) (subst_comp gamma' c2).
 
 Notation "Gamma ⊨ c1 ∼ c2 : B" := (comp_semeq Gamma B c1 c2) (at level 80, c2 at level 99).
 
@@ -324,7 +324,7 @@ Section CompatibilityLemmas.
 
 
   Lemma congruence_lambda:
-    (forall v v', V A v v' -> E B (c3[v..]) (c4[v'..])) -> (E (A → B) (lambda c3) (lambda c4)).
+    (forall v v', V A v v' -> E B (subst_comp (v..) c3) (subst_comp (v'..) c4)) -> (E (A → B) (lambda c3) (lambda c4)).
   Proof.
     intros H; eapply subrel_C_E; cbn; do 2 eexists; intuition.
   Qed.
@@ -353,7 +353,7 @@ Section CompatibilityLemmas.
   Qed.
 
   Lemma congruence_letin:
-    E (F A) c1 c2 -> (forall v v', V A v v' -> E B (c3[v..]) (c4[v'..])) ->
+    E (F A) c1 c2 -> (forall v v', V A v v' -> E B (subst_comp (v..) c3) (subst_comp (v'..) c4)) ->
     E B ($ <- c1; c3) ($ <- c2; c4).
   Proof.
     intros.
@@ -367,7 +367,7 @@ Section CompatibilityLemmas.
 
 
   Lemma congruence_eagerlet:
-    E (F A) c1 c2 -> (forall v v', V A v v' -> E B (c3[v..]) (c4[v'..])) ->
+    E (F A) c1 c2 -> (forall v v', V A v v' -> E B (subst_comp (v..) c3) (subst_comp (v'..) c4)) ->
     E B ($$ <- c1; c3) ($$ <- c2; c4).
   Proof.
     intros.
@@ -397,8 +397,8 @@ Section CompatibilityLemmas.
 
   Lemma congruence_caseS:
     V (Sigma A1 A2) v1 v2 ->
-    (forall v v', V A1 v v' -> E B (c3[v..]) (c4[v'..])) ->
-    (forall v v', V A2 v v' -> E B (c5[v..]) (c6[v'..])) ->
+    (forall v v', V A1 v v' -> E B (subst_comp (v..) c3) (subst_comp (v'..) c4)) ->
+    (forall v v', V A2 v v' -> E B (subst_comp (v..) c5) (subst_comp (v'..) c6)) ->
     E B (caseS v1 c3 c5) (caseS v2 c4 c6).
   Proof.
     intros (? & ? & b & ?); intuition; subst.
@@ -409,7 +409,7 @@ Section CompatibilityLemmas.
 
   Lemma congruence_caseP:
     V (A1 * A2) v1 v2 ->
-    (forall v1 v1' v2 v2', V A1 v1 v1' -> V A2 v2 v2' -> E B (c7[v2,v1..]) (c8[v2',v1'..])) ->
+    (forall v1 v1' v2 v2', V A1 v1 v1' -> V A2 v2 v2' -> E B (subst_comp (v2,v1..) c7) (subst_comp (v2',v1'..) c8)) ->
     E B (caseP v1 c7) (caseP v2 c8).
   Proof.
     intros (? & ? & ? & ? & ?); intuition; subst.
@@ -456,11 +456,11 @@ Qed.
 
 Lemma fundamental_property_value n m
       (v: value n) (Gamma: ctx n) (A: valtype) (gamma gamma': fin n -> value m):
-  Gamma ⊩ v : A -> G Gamma gamma gamma' -> V A v[gamma] v[gamma'].
+  Gamma ⊩ v : A -> G Gamma gamma gamma' -> V A (subst_value gamma v) (subst_value gamma' v).
 Proof.  destruct (fundamental_property n); intros; eapply H; eauto. Qed.
 
 Lemma fundamental_property_comp n m (c: comp n) (Gamma: ctx n) (B: comptype)  (gamma gamma': fin n -> value m):
-  Gamma ⊢ c : B ->  G Gamma gamma gamma' -> E B c[gamma] c[gamma'].
+  Gamma ⊢ c : B ->  G Gamma gamma gamma' -> E B (subst_comp gamma c) (subst_comp gamma' c).
 Proof. destruct (fundamental_property n); intros; eapply H0; eauto.  Qed.
 
 

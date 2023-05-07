@@ -35,7 +35,7 @@ Ltac trewrite H :=
 
 Definition eagerlet {n} (M : comp n) (N : comp (S n)) :=
   match M with
-  | ret V => N[V..]
+  | ret V => subst_comp (V..) N
   | M => letin M N
   end.
 
@@ -44,7 +44,7 @@ Notation "$$ <- A ; B" := (eagerlet A B) (at level 55).
 (** ** Inversion for eager let *)
 
 Lemma eagerlet_inv {n} (M : comp n) N :
-  ((eagerlet M N = letin M N) * ~ exists V, M = ret V) + ({V & prod (M = ret V) (eagerlet M N = N[V..])}).
+  ((eagerlet M N = letin M N) * ~ exists V, M = ret V) + ({V & prod (M = ret V) (eagerlet M N = subst_comp (V..) N)}).
 Proof.
   destruct M. all: try (left; firstorder congruence).
   right; cbn; eauto.
@@ -62,19 +62,19 @@ Lemma eagerlet_ty {n : nat} (Gamma : ctx n) (M : comp n) (N : comp (S n)) A B :
 Proof.
   unfold eagerlet. intros. destruct M; eauto. inv X.
   eapply comp_typepres_substitution; eauto.
-  intros. destruct i; cbn; eauto.
+  intros. destruct i; cbn; asimpl; eauto.
 Qed.
 
 (** ** Eager let and substitutions *)
 
 Lemma eagerlet_rencomp {m n : nat} (sigma  : fin n -> fin m) (M : comp n) (N : comp (S n)) :
-  (eagerlet M N)⟨sigma⟩ = eagerlet (M⟨sigma⟩) (N⟨upRen_value_value sigma⟩).
+  ren_comp sigma (eagerlet M N) = eagerlet (ren_comp sigma M) (ren_comp (upRen_value_value sigma) N).
 Proof.
   destruct M; cbn; try reflexivity. now asimpl.
 Qed.
 
 Lemma eagerlet_substcomp {m n : nat} (sigma  : fin n -> value m) (M : comp n) (N : comp (S n)) :
-   (eagerlet M N)[sigma] = eagerlet (M[sigma]) (N[up_value_value sigma]).
+   subst_comp sigma (eagerlet M N) = eagerlet (subst_comp sigma M) (subst_comp (up_value_value sigma) N).
 Proof.
   destruct M; cbn; try reflexivity. now asimpl.
 Qed.
@@ -161,14 +161,14 @@ Qed.
 
 
 Lemma proper_eagerlet_sstep_L n (M M' : comp n) N :
-  sstep M M' -> (forall V V', sstep_value V V' -> plus sstep (N[V..]) (N[V'..])) -> plus sstep (eagerlet M N) (eagerlet M' N).
+  sstep M M' -> (forall V V', sstep_value V V' -> plus sstep (subst_comp (V..) N) (subst_comp (V'..) N)) -> plus sstep (eagerlet M N) (eagerlet M' N).
 Proof.
   intros. inv H; cbn; eauto.
   inv H1; cbn; eauto; eapply step_star_plus; try rewrite <- let_to_eagerlet; try reflexivity; eauto.
 Qed.
 
 Lemma proper_eagerlet_plus_sstep_L n (M M' : comp n) N :
-  plus sstep M M' -> (forall V V', sstep_value V V' -> plus sstep (N[V..]) (N[V'..])) -> plus sstep (eagerlet M N) (eagerlet M' N).
+  plus sstep M M' -> (forall V V', sstep_value V V' -> plus sstep (subst_comp (V..) N) (subst_comp (V'..) N)) -> plus sstep (eagerlet M N) (eagerlet M' N).
 Proof.
   intros. induction H.
   - eapply proper_eagerlet_sstep_L; eauto.

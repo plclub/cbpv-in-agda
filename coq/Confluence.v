@@ -16,7 +16,7 @@ Notation "A >> B" := (parstep A B).
 Inductive parstepv (n: nat) : value n -> value n -> Prop :=
 | parstepvVar (i: fin n): (var_value i) >>v (var_value i)
 | parstepvU : (@u n) >>v u
-| parstepvPair (v1 : value n) v1' v2 v2': v1 >>v v1' -> v2 >>v v2' -> ⟨ v1; v2 ⟩ >>v ⟨ v1'; v2' ⟩
+| parstepvPair (v1 : value n) v1' v2 v2': v1 >>v v1' -> v2 >>v v2' -> pair v1 v2 >>v pair v1' v2'
 | parstepvInj b (v: value n) v': v >>v v' -> inj b v >>v inj b v'
 | parstepvThunk (c: comp n) c': c >>c c' -> <{ c }> >>v <{ c' }>
 where "M >>v N" := (parstepv M N)
@@ -26,14 +26,14 @@ with parstepc (n: nat) : comp n -> comp n -> Prop :=
 | parstepcForceBeta (c c': comp n): c >>c c' -> <{ c }> ! >>c c'
 | parstepcLambda (c c': comp (S n)): c >>c c' -> lambda c >>c lambda c'
 | parstepcApp (c: comp n) c' v v': c >>c c' -> v >>v v' -> c v >>c c' v'
-| parstepcAppBeta (c c': comp (S n)) v v': c >>c c' -> v >>v v' -> (lambda c) v >>c c'[v'..]
+| parstepcAppBeta (c c': comp (S n)) v v': c >>c c' -> v >>v v' -> (lambda c) v >>c subst_comp (v'..) c'
 | parstepcTuple (c1 c1' c2 c2': comp n):
     c1 >>c c1' -> c2 >>c c2' -> tuple c1 c2 >>c tuple c1' c2'
 | parstepcRet (v: value n) v': v >>v v'-> ret v >>c ret v'
 | parstepcLetin c1 c1' (c2 c2': comp (S n)) :
     c1 >>c c1' -> c2 >>c c2' -> $ <- c1; c2 >>c $ <- c1'; c2'
 | parstepcLetinBeta (c c': comp (S n)) v v':
-    c >>c c' -> v >>v v' -> $ <- ret v; c >>c c'[v'..]
+    c >>c c' -> v >>v v' -> $ <- ret v; c >>c subst_comp (v'..) c'
 | parstepcProj (c c': comp n) b: c >>c c' -> proj b c >>c proj b c'
 | parstepcProjBeta (c1 c1': comp n) (c2 c2': comp n) b:
     c1 >>c c1' -> c2 >>c c2' -> proj b (tuple c1 c2) >>c (if b then c1' else c2')
@@ -42,12 +42,12 @@ with parstepc (n: nat) : comp n -> comp n -> Prop :=
     v >>v v'-> c1 >>c c1' -> c2 >>c c2' ->  caseS v c1 c2 >>c caseS v' c1' c2'
 | parstepcCaseSBeta (v v': value n) c1 c1' c2 c2' b:
     v >>v v'-> c1 >>c c1' -> c2 >>c c2' ->
-    caseS (inj b v) c1 c2 >>c (if b then c1' else c2')[v'..]
+    caseS (inj b v) c1 c2 >>c subst_comp (v' ..) (if b then c1' else c2')
 | parstepcCaseP (v v': value n) c c':
     v >>v v'-> c >>c c' -> caseP v c >>c caseP v' c'
 | parstepcCasePBeta (v1 v1': value n) v2 v2' c c':
     v1 >>v v1' -> v2 >>v v2' -> c >>c c' ->
-    caseP (⟨v1; v2⟩) c >>c c'[v2', v1'..]
+    caseP (pair v1 v2) c >>c subst_comp (v2',v1'..) c'
 where "M >>c N" := (@parstepc _ M N).
 
 Scheme parstepv_ind_2 := Induction for parstepv Sort Prop
@@ -81,18 +81,18 @@ with rho (n: nat) (c: comp n) :=
   | force (thunk c) => rho c
   | force v => force (rhoᵥ v)
   | lambda c => lambda (rho c)
-  | app (lambda c) v => (rho c)[(rhoᵥ v)..]
+  | app (lambda c) v => subst_comp ((rhoᵥ v) ..) (rho c)
   | app c v => app (rho c) (rhoᵥ v)
   | tuple c1 c2 => tuple (rho c1) (rho c2)
   | ret v => ret (rhoᵥ v)
-  | letin (ret v) c => (rho c)[(rhoᵥ v)..]
+  | letin (ret v) c => subst_comp ((rhoᵥ v)..) (rho c)
   | letin c1 c2 => letin (rho c1) (rho c2)
   | proj b (tuple c1 c2) => if b then rho c1 else rho c2
   | proj b c => proj b (rho c)
   | caseZ v => caseZ (rhoᵥ v)
-  | caseS (inj b v) c1 c2 => (if b then rho c1 else rho c2)[(rhoᵥ v)..]
+  | caseS (inj b v) c1 c2 => subst_comp ((rhoᵥ v)..) (if b then rho c1 else rho c2)
   | caseS v c1 c2 => caseS (rhoᵥ v) (rho c1) (rho c2)
-  | caseP (pair v1 v2) c => (rho c)[rhoᵥ v2,(rhoᵥ v1)..]
+  | caseP (pair v1 v2) c => subst_comp (rhoᵥ v2,(rhoᵥ v1)..) (rho c)
   | caseP v c => caseP (rhoᵥ v) (rho c)
   end.
 
@@ -142,30 +142,30 @@ Qed.
 
 
 Lemma ren_lift n m (s: comp (S n)) (t: value n) (sigma: fin n -> fin m):
-  (s[t..])⟨sigma⟩ = (s ⟨up_ren sigma⟩) [(t⟨sigma⟩)..].
+  ren_comp sigma (subst_comp (t..) s) = subst_comp ((ren_value sigma t)..) (ren_comp (up_ren sigma) s).
 Proof.
   now asimpl.
 Qed.
 
 Lemma ren₂_lift n m s t1 t2 (sigma: fin n -> fin m):
-  ren_comp sigma (s[t2, t1..]) = (ren_comp (up_ren (up_ren sigma)) s)[(ren_value sigma t2), (ren_value sigma t1)..].
+  ren_comp sigma (subst_comp (t2,t1..)s) = subst_comp ((ren_value sigma t2), (ren_value sigma t1)..) (ren_comp (up_ren (up_ren sigma)) s).
 Proof.
   now asimpl.
 Qed.
 
 Lemma beta_lift n m s t (sigma: fin n -> value m):
-  subst_comp sigma (s[t..]) = (subst_comp (up_value_value sigma) s) [(subst_value sigma t)..].
+  subst_comp sigma (subst_comp (t..) s) = subst_comp ((subst_value sigma t)..) (subst_comp (up_value_value sigma) s).
 Proof. now asimpl. Qed.
 
 Lemma beta₂_lift n m s t1 t2 (sigma: fin n -> value m):
-  subst_comp sigma ( s [t1, t2..]) =
-  (subst_comp (up_value_value (up_value_value sigma)) s) [(subst_value sigma t1), (subst_value sigma t2)..].
+  subst_comp sigma (subst_comp (t1, t2..) s) =
+  subst_comp ((subst_value sigma t1), (subst_value sigma t2)..) (subst_comp (up_value_value (up_value_value sigma)) s).
 Proof. now asimpl. Qed.
 
 Fixpoint parstepc_renaming n m (c c': comp n) (H: c >>c c') {struct H}:
-  forall  (f: fin n -> fin m), c⟨f⟩ >>c c'⟨f⟩
+  forall  (f: fin n -> fin m), ren_comp f c >>c ren_comp f c'
 with parstepv_renaming n m (v v': value n) (H: v >>v v') {struct H}:
-  forall  (f: fin n -> fin m),  v⟨f⟩ >>v v'⟨f⟩.
+  forall  (f: fin n -> fin m),  ren_value f v >>v ren_value f v'.
 Proof.
   all: destruct H; asimpl; intros; eauto.
   all: rewrite ?ren_lift, ?ren₂_lift.
@@ -177,9 +177,9 @@ Qed.
 Hint Resolve parstepv_renaming parstepc_renaming.
 
 Fixpoint parstepc_subst n m (c c': comp n) (H: c >>c c') {struct H}:
-  forall  (f g: fin n -> value m), (forall i, f i >>v g i) -> c[f] >>c c'[g]
+  forall  (f g: fin n -> value m), (forall i, f i >>v g i) -> subst_comp f c >>c subst_comp g c'
 with parstepv_subst n m (v v': value n) (H: v >>v v') {struct H}:
-  forall  (f g: fin n -> value m), (forall i, f i >>v g i) -> v[f] >>v v'[g].
+  forall  (f g: fin n -> value m), (forall i, f i >>v g i) -> subst_value f v >>v subst_value g v'.
 Proof with eauto; intros []; cbn; unfold funcomp; eauto.
   all: destruct H; intros; cbn; eauto.
   - constructor; apply parstepc_subst...

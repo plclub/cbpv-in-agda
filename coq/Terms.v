@@ -73,7 +73,7 @@ Definition var {m: nat} (n: nat) : value (S (it S n m)) :=
 Notation "<{ c }>" := (thunk c).
 Notation "c !" := (force c) (at level 50).
 Notation "$ <- A ; B" := (letin A B) (at level 55).
-Notation "⟨ A ; B ⟩" := (pair A B) (at level 52).
+(* Notation "⟨ A ; B ⟩" := (pair A B) (at level 52). *)
 Notation "A → B" := (arrow A B) (at level 53).
 Notation "A * B" := (cross A B).
 Coercion app : comp >-> Funclass.

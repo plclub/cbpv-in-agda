@@ -1,6 +1,15 @@
 all: Makefile.coq
 	+make -C coq -f Makefile.coq all
 
+coq/Syntax.v: coq/cbpv.sig
+	as2-exe -p Coq -i coq/cbpv.sig > coq/Syntax.v
+
+coq/CBN/CBN.v: coq/CBN/cbn.sig
+	as2-exe -p Coq -i coq/CBN/cbn.sig > coq/CBN/CBN.v
+
+coq/CBV/CBV.v: coq/CBV/cbv.sig
+	as2-exe -p Coq -i coq/CBV/cbv.sig > coq/CBV/CBV.v
+
 html: Makefile.coq
 	+make -C coq -f Makefile.coq html
 

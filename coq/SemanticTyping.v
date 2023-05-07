@@ -31,7 +31,7 @@ with C {n: nat} (B: comptype) (c: comp n) :=
   | cone => c = cu
   | F A => exists v, c = ret v /\ V A v
   | Pi B1 B2 => exists c1 c2, c = tuple c1 c2 /\ E' (C B1) c1 /\ E' (C B2) c2
-  | A → B => exists c', c = lambda c' /\ forall v, V A v -> E' (C B) (c'[v..])
+  | A → B => exists c', c = lambda c' /\ forall v, V A v -> E' (C B) (subst_comp (v..) c')
   end.
 
 
@@ -41,12 +41,12 @@ Definition G  {n m: nat} (Gamma : ctx n) (gamma: fin n -> value m) :=
  forall i A, Gamma i = A -> V A (gamma i).
 
 Definition val_semtype {n: nat} (Gamma: ctx n) (v: value n) (A: valtype) :=
-  forall m (gamma: fin n -> value m), G Gamma gamma -> V A (v[gamma]).
+  forall m (gamma: fin n -> value m), G Gamma gamma -> V A (subst_value gamma v).
 
 Notation "Gamma ⊫ v : A" := (val_semtype Gamma v A) (at level 80, v at level 99).
 
 Definition comp_semtype {n: nat} (Gamma: ctx n) (c: comp n) (B: comptype) :=
-  forall m (gamma: fin n -> value m), G Gamma gamma -> E B (c[gamma]).
+  forall m (gamma: fin n -> value m), G Gamma gamma -> E B (subst_comp gamma c).
 
 Notation "Gamma ⊨ c : B" := (comp_semtype Gamma c B) (at level 80, c at level 99).
 

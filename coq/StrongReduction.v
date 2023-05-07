@@ -240,9 +240,9 @@ Qed.
 
 (** ** Compatibility with substitutions *)
 Fixpoint primitive_step_subst m n k (f : fin m -> value n) (C1 C2 : comp k) (K: cctx false m k):
-  C1 ≽ C2 -> (fillc K C1)[f] ↪ (fillc K C2)[f]
+  C1 ≽ C2 -> subst_comp f (fillc K C1) ↪ subst_comp f (fillc K C2)
 with primitive_step_subst_value m n k (f : fin m -> value n) (C1 C2 : comp k) (K: vctx false m k):
-  C1 ≽ C2 -> (fillv K C1)[f] ↪ᵥ (fillv K C2)[f].
+  C1 ≽ C2 -> subst_value f (fillv K C1) ↪ᵥ subst_value f (fillv K C2).
 Proof.
   all: destruct K; cbn; intros; eauto.
   - constructor; eapply pstep_subst; eauto.
@@ -251,20 +251,20 @@ Qed.
 
 
 Lemma strong_step_subst m n (f : fin m -> value n) (C1 C2 : comp m) :
-  C1 ⇒ C2 -> C1[f] ⇒ C2[f].
+  C1 ⇒ C2 -> subst_comp f C1 ⇒ subst_comp f C2.
 Proof.
   intros []; rewrite <-sstep_strong_step; eapply primitive_step_subst; assumption.
 Qed.
 
 Lemma strong_step_value_subst m n (f : fin m -> value n) (V1 V2 : value m) :
-  V1 ⇒ᵥ V2 -> V1[f] ⇒ᵥ V2[f].
+  V1 ⇒ᵥ V2 -> subst_value f V1 ⇒ᵥ subst_value f V2.
 Proof.
     intros []; rewrite <-sstep_strong_step_value;  eapply primitive_step_subst_value; assumption.
 Qed.
 
 
 Lemma pstep_anti_renaming m n (f: fin m -> fin n) (c : comp m) (d: comp n) :
- c⟨f⟩ ≽ d -> exists2 d', c ≽ d' & d = d'⟨f⟩.
+ ren_comp f c ≽ d -> exists2 d', c ≽ d' & d = ren_comp f d'.
 Proof with eexists; eauto; now asimpl.
   destruct c; asimpl; intros H; inv H.
   - destruct v; try discriminate; cbn in *; injection H1 as ->...
@@ -278,11 +278,11 @@ Qed.
 
 
 Fixpoint sstep_anti_renaming m n (f : fin m -> fin n) (c : comp m) (d : comp n) :
-  c⟨f⟩ ↪ d ->
-  exists2 d', c ↪ d' & d = d'⟨f⟩
+  ren_comp f c ↪ d ->
+  exists2 d', c ↪ d' & d = ren_comp f d'
 with sstep_value_anti_renaming m n (f : fin m -> fin n) (v : value m) (w : value n) :
-  v⟨f⟩ ↪ᵥ w ->
-  exists2 w', v ↪ᵥ  w' & w = w'⟨f⟩.
+  ren_value f v ↪ᵥ w ->
+  exists2 w', v ↪ᵥ  w' & w = ren_value f w'.
 Proof.
   1: destruct c.
   12: destruct v.
@@ -300,14 +300,14 @@ Qed.
 
 
 Lemma strong_step_anti_renaming m n (f : fin m -> fin n) (c : comp m) (d : comp n) :
-  c⟨f⟩ ⇒ d -> exists2 d', c ⇒ d' & d = d'⟨f⟩.
+  ren_comp f c ⇒ d -> exists2 d', c ⇒ d' & d = ren_comp f d'.
 Proof.
   rewrite <-sstep_strong_step; intros [] % sstep_anti_renaming;
   eexists; eauto; rewrite <-sstep_strong_step; eauto.
 Qed.
 
 Lemma strong_step_value_anti_renaming m n (f : fin m -> fin n) (v1 : value m) (v2 : value n) :
-  v1⟨f⟩⇒ᵥ v2 -> exists2 v2', v1 ⇒ᵥ v2' & v2 = v2'⟨f⟩.
+  ren_value f v1 ⇒ᵥ v2 -> exists2 v2', v1 ⇒ᵥ v2' & v2 = ren_value f v2'.
 Proof.
   repeat rewrite <-sstep_strong_step_value; intros H.
   edestruct sstep_value_anti_renaming; eauto; eexists; rewrite <-?sstep_strong_step_value; eauto.
@@ -655,7 +655,7 @@ Proof.
 Qed.
 
 Lemma step_app_inv n (P : comp n -> Prop) (c : comp n) (v : value n) :
-  (forall (b : comp (S n)), c = lambda b -> P b[v..]) ->
+  (forall (b : comp (S n)), c = lambda b -> P (subst_comp (v..) b)) ->
   (forall c', c ⇒ c' -> P (app c' v)) ->
   (forall v', v ⇒ᵥ v' -> P (app c v')) ->
   (forall c', app c v ⇒ c' -> P c').
@@ -687,7 +687,7 @@ Proof.
 Qed.
 
 Lemma step_letin_inv n (P : comp n -> Prop) (c1 : comp n) c2 :
-  (forall v, c1 = ret v -> P (c2[v..])) ->
+  (forall v, c1 = ret v -> P (subst_comp (v..) c2)) ->
   (forall c', c1 ⇒ c' -> P ($ <- c'; c2)) ->
   (forall c', c2 ⇒ c' -> P ($ <- c1; c')) ->
   (forall c', $ <- c1; c2 ⇒ c' -> P c').
@@ -718,7 +718,7 @@ Proof.
 Qed.
 
 Lemma step_caseS_inv n (P : comp n -> Prop) v c1 c2 :
-  (forall b v', v = inj b v' -> P ((if b then c1 else c2)[v'..])) ->
+  (forall b v', v = inj b v' -> P (subst_comp (v'..) (if b then c1 else c2))) ->
   (forall v', v ⇒ᵥ v' -> P (caseS v' c1 c2)) ->
   (forall c', c1 ⇒ c' -> P (caseS v c' c2)) ->
   (forall c', c2 ⇒ c' -> P (caseS v c1 c')) ->
@@ -732,7 +732,7 @@ Proof.
 Qed.
 
 Lemma step_caseP_inv n (P : comp n -> Prop) (v : value n) c :
-  (forall v1 v2, v = pair v1 v2 -> P (c[v2, v1..])) ->
+  (forall v1 v2, v = pair v1 v2 -> P (subst_comp (v2,v1..) c)) ->
   (forall v', v ⇒ᵥ v' -> P (caseP v' c)) ->
   (forall c', c ⇒ c' -> P (caseP v c')) ->
   (forall d, caseP v c ⇒ d -> P d).
@@ -744,8 +744,8 @@ Proof.
 Qed.
 
 Lemma step_ren_comp_inv m :
-  (forall D C', D ↪ C' -> forall n C (rho : fin n -> fin m), D = C⟨rho⟩ -> exists C'', C ↪ C'' /\ C' = C''⟨rho⟩) /\
-  (forall V1 V', sstep_value V1 V' -> forall n V (rho : fin n -> fin m), V1 = V⟨rho⟩ -> exists V'', sstep_value V V'' /\ V' = V''⟨rho⟩).
+  (forall D C', D ↪ C' -> forall n C (rho : fin n -> fin m), D = ren_comp rho C -> exists C'', C ↪ C'' /\ C' = ren_comp rho C'') /\
+  (forall V1 V', sstep_value V1 V' -> forall n V (rho : fin n -> fin m), V1 = ren_value rho V -> exists V'', sstep_value V V'' /\ V' = ren_value rho V'').
 Proof with intros; asimpl; f_equal; fext; now intros [].
   revert m. eapply mutind_sstep; cbn; intros.
   all: try now (destruct V; inv H0; edestruct H as (? & ? & ->); eauto).

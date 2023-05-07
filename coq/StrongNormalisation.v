@@ -53,8 +53,8 @@ Lemma closev_base n (V : value n -> Prop) (v : value n) :
 Proof. intros H1 H2. inv H2. contradiction. assumption. Qed.
 
 Lemma close_ren (C : forall n, comp n -> Prop) :
-  (forall m n (f : fin m -> fin n) (c : comp m), C m c -> C n c⟨f⟩) ->
-  (forall m n (f : fin m -> fin n) (c : comp m), close (C m) c -> close (C n) c⟨f⟩).
+  (forall m n (f : fin m -> fin n) (c : comp m), C m c -> C n (ren_comp f c)) ->
+  (forall m n (f : fin m -> fin n) (c : comp m), close (C m) c -> close (C n) (ren_comp f c)).
 Proof.
   intros H1 m n f c. induction 1 as [c H2 H3 ih]. constructor.
   - intros H4. apply H1. apply H2. destruct c; cbn in *; eauto.
@@ -63,7 +63,7 @@ Qed.
 
 Lemma closev_ren (V : forall n, value n -> Prop) :
   (forall m n (f : fin m -> fin n) (v : value m), V m v -> V n (ren_value f v)) ->
-  (forall m n (f : fin m -> fin n) (v : value m), closev (V m) v -> closev (V n) v⟨f⟩).
+  (forall m n (f : fin m -> fin n) (v : value m), closev (V m) v -> closev (V n) (ren_value f v)).
 Proof.
   intros H1 m n f c H2. inv H2. constructor. constructor. now apply H1.
 Qed.
@@ -95,7 +95,7 @@ with C {n: nat} (B: comptype) (c: comp n) :=
   | A → B =>
     match c with
     | lambda c' => forall k (f : fin n -> fin k) (v : value k),
-        closev (V A) v -> close (C B) (c'[v, f >> ids])
+        closev (V A) v -> close (C B) (subst_comp (v, f >> ids) c')
     | _ => False
     end
   end.
@@ -123,9 +123,9 @@ Notation "Gamma ⊨ c ::: B" := (comp_semtype Gamma c B) (at level 80).
 
 Lemma VC_ren :
   (forall (A : valtype), forall m n (f : fin m -> fin n) (v : value m),
-        V A v -> V A v⟨f⟩) /\
+        V A v -> V A (ren_value f v)) /\
   (forall (A : comptype), forall m n (f : fin m -> fin n) (c : comp m),
-        C A c -> C A c⟨f⟩).
+        C A c -> C A (ren_comp f c)).
 Proof.
   apply mutind_valtype_comptype.
   - now eauto.
@@ -150,13 +150,13 @@ Proof.
 Qed.
 
 Lemma VV_ren m n (f : fin m -> fin n) (v : value m) (A : valtype) :
-  VV A v -> VV A v⟨f⟩.
+  VV A v -> VV A (ren_value f v).
 Proof.
   revert m n f v. apply closev_ren. destruct VC_ren as [H _]. apply H.
 Qed.
 
 Lemma E_ren m n (f : fin m -> fin n) (c : comp m) (A : comptype) :
-  E A c -> E A c⟨f⟩.
+  E A c -> E A (ren_comp f c).
 Proof.
   revert m n f c. apply close_ren. destruct VC_ren as [_ H]. apply H.
 Qed.
@@ -180,7 +180,7 @@ Proof.
 Qed.
 
 Lemma G_ren m n k (Gamma : ctx m) (f : fin m -> value n) (g : fin n -> fin k) :
-  G Gamma f -> G Gamma (f >> ⟨g⟩).
+  G Gamma f -> G Gamma (f >> (ren_value g)).
 Proof.
   intros Gf i. apply VV_ren. apply Gf.
 Qed.
@@ -308,7 +308,7 @@ Section CompatibilityLemmas.
   Qed.
 
   Lemma compat_letin_E (c1 : comp n) c2 :
-    E (F A) c1 -> sn c2 -> (forall v, VV A v -> E B (c2[v..])) ->
+    E (F A) c1 -> sn c2 -> (forall v, VV A v -> E B (subst_comp (v..) c2)) ->
     E B ($ <- c1; c2).
   Proof.
     intros Ec1. revert c1 Ec1 c2. refine (E_ind _ _ _).
@@ -375,8 +375,8 @@ Section CompatibilityLemmas.
   Lemma compat_caseS_E (v : value n) c1 c2 :
     VV (Sigma A1 A2) v ->
     sn c1 -> sn c2 ->
-    (forall v', VV A1 v' -> E B (c1[v'..])) ->
-    (forall v', VV A2 v' -> E B (c2[v'..])) ->
+    (forall v', VV A1 v' -> E B (subst_comp (v' ..) c1)) ->
+    (forall v', VV A2 v' -> E B (subst_comp (v' ..) c2)) ->
     E B (caseS v c1 c2).
   Proof.
     intros vv. revert c1 c2. induction (VV_sn _ vv) as [v _ ih1].
@@ -398,7 +398,7 @@ Section CompatibilityLemmas.
   Lemma compat_caseP_E (v : value n) c :
     VV (A1 * A2) v ->
     sn c ->
-    (forall v1 v2, VV A2 v1 -> VV A1 v2 -> E B (c[v1, v2..])) ->
+    (forall v1 v2, VV A2 v1 -> VV A1 v2 -> E B (subst_comp (v1,v2..)c)) ->
     E B (caseP v c).
   Proof.
     intros Vv. revert c. induction (VV_sn _ Vv) as [v _ ih1]. intros c snc.

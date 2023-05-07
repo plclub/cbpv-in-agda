@@ -2,9 +2,7 @@ Require Export CBN.
 Require Export Eagerlet.
 Import CommaNotation.
 
-Tactic Notation "asimpl" := CBN.auto_unfold; Syntax.auto_unfold; CBN.asimpl'; Syntax.asimpl'; CBN.auto_fold; Syntax.auto_fold.
-
-Tactic Notation "asimpl" "in" hyp(H) := revert H; asimpl; intros H.
+Ltac asimpl := repeat (progress (CBN.asimpl; Syntax.asimpl)).
 
 
 Lemma computation_typing_ext n Gamma Gamma' (C : comp n) A :
@@ -50,7 +48,7 @@ Proof. intros <-; constructor. Qed.
 Hint Resolve cbn_typeVar'.
 
 Fixpoint cbn_typepres_renaming n Gamma s A (H: Gamma ⊢n s : A)  m (delta: fin n -> fin m) Delta {struct H}:
-  (forall i, Gamma i = Delta (delta i)) -> Delta ⊢n s⟨delta⟩ : A.
+  (forall i, Gamma i = Delta (delta i)) -> Delta ⊢n (ren_exp delta s) : A.
 Proof.
   all: destruct H; cbn; intros; eauto; econstructor; eauto;
   eapply cbn_typepres_renaming; eauto.
@@ -58,7 +56,7 @@ Proof.
 Qed.
 
 Fixpoint cbn_typepres_substitution n (Gamma: cbn_ctx n) s A (H: Gamma ⊢n s : A)  m (sigma: fin n -> exp  m) Delta {struct H}:
-  (forall i, Delta ⊢n sigma i : Gamma i) -> Delta ⊢n s[sigma] : A.
+  (forall i, Delta ⊢n sigma i : Gamma i) -> Delta ⊢n (subst_exp sigma s) : A.
 Proof.
   all: destruct H; cbn; intros; eauto; econstructor; eauto.
   all: eapply cbn_typepres_substitution; eauto.
@@ -90,7 +88,7 @@ Inductive trans {n} : exp n -> comp n -> Type :=
 | trans_Inj b (s : exp n) M : s ↦n M -> Inj b s ↦n ret (inj b (thunk M))
 | trans_CaseS (s : exp n) t1 t2 M N1 N2 N1' N2' :
     s ↦n M -> t1 ↦n N1 -> t2 ↦n N2 ->
-    N1' = N1⟨ren_up⟩ -> N2' = N2⟨ren_up⟩ ->
+    N1' = ren_comp ren_up N1 -> N2' = ren_comp ren_up N2 ->
     CaseS s t1 t2 ↦n $$ <- M; caseS (var_value var_zero) N1' N2'
 | trans_FT (s : exp n) M : s ↦n M -> s ↦n force (thunk M)
 where "s ↦n C" := (@trans _ s C).
@@ -129,7 +127,7 @@ Ltac prv_eq := intros; asimpl; f_equal; fext; now intros [].
 
 Lemma trans_ren (n m : nat) (M : exp n) M' (sigma : fin n -> fin m) :
       M ↦n M' ->
-      M⟨sigma⟩ ↦n M' ⟨sigma⟩.
+      ren_exp sigma M ↦n ren_comp sigma M'.
 Proof.
   intros. revert m sigma; induction X; try now (cbn; intros; eauto; try econstructor; eauto).
   intros. asimpl. rewrite eagerlet_rencomp. asimpl.
@@ -138,13 +136,13 @@ Qed.
 
 Lemma trans_subst (n m : nat) (M : exp n) M' (sigma : fin n -> exp m) sigma' :
       M ↦n M' -> (forall i, sigma i ↦n force (sigma' i)) ->
-      M[sigma] ↦n M'[sigma'].
+      subst_exp sigma M ↦n subst_comp sigma' M'.
 Proof.
   intros. revert m sigma sigma' X0; induction X; try now (cbn; intros; eauto).
   - cbn; intros. econstructor. eapply IHX. intros []; cbn; eauto.
     eapply trans_ren with (1 := (X0 f)).
   - intros. subst. asimpl. rewrite eagerlet_substcomp. asimpl.
-    eapply trans_CaseS with (N1 := N1[up_value_value sigma']) (N2 := N2[up_value_value sigma']); try (now asimpl); eauto.
+    eapply trans_CaseS with (N1 := subst_comp (up_value_value sigma') N1) (N2 := subst_comp (up_value_value sigma') N2); try (now asimpl); eauto.
     + eapply IHX2. auto_case. unfold funcomp. 
       asimpl. eapply (trans_ren m (S m) (sigma f) ((sigma' f) !) shift). eauto.
     + eapply IHX3. auto_case. unfold funcomp.
@@ -187,8 +185,10 @@ Definition eval_subst {m n} (I : fin m -> exp n) :=
 
 (** *** Translation of substitutions is well-behaved for renamings *)
 
+(* Yiyun: ids v is the type class method for var_exp v / var_value v *)
+(* rewriting might struggle with the method *)
 Lemma eval_subst_cons {m n} (sigma : fin m -> exp n) v :
-  eval_subst (ids v, sigma) = var_value v, eval_subst sigma.
+  eval_subst (var_exp v, sigma) = var_value v, eval_subst sigma.
 Proof.
   unfold eval_subst. fext. cbn. now intros [].
 Qed.
@@ -196,22 +196,20 @@ Qed.
 Hint Extern 0 => asimpl : autosubst.
 Ltac autosubst := auto with autosubst.
 
-
 Lemma ren_comp_eval n m (rho : fin n -> fin m) (s : exp n) :
-  (eval s)⟨rho⟩ = eval (s⟨rho⟩).
+  ren_comp rho (eval s) = eval (ren_exp rho s).
 Proof.
   revert m rho; induction s; cbn; intros.
   all: try reflexivity.
   all: try now rewrite IHs.
   all: try now rewrite IHs1, IHs2.
   rewrite eagerlet_rencomp. rewrite IHs1. cbn. repeat f_equal.
-  - asimpl. 
-    rewrite <- IHs2. now asimpl.
-  - asimpl. rewrite <- IHs3. now asimpl.
+  - rewrite <- IHs2. now asimpl.
+  - rewrite <- IHs3. now asimpl.
 Qed.
 
 Lemma evaL_subst_ren m n k (sigma : fin m -> exp n) (tau : fin n -> fin k) :
-  eval_subst (sigma >> ⟨tau⟩) = eval_subst sigma >> ⟨tau⟩.
+  eval_subst (sigma >> ren_exp tau) = eval_subst sigma >> ren_value tau.
 Proof.
   fext. intros. unfold eval_subst.
   cbn. unfold funcomp. destruct (sigma x); cbn.
@@ -226,7 +224,8 @@ Lemma eval_subst_up_value_value m n (sigma : fin m -> exp n):
 Proof.
   asimpl.
   rewrite eval_subst_cons.
-  asimpl. now rewrite evaL_subst_ren.
+  Syntax.asimpl.
+  now rewrite evaL_subst_ren.
 Qed.
 
 (** ** Extended translation relation *)
@@ -242,11 +241,11 @@ Inductive refines {n} : exp n -> comp n -> Type :=
 | refines_Proj b (s : exp n) M : s ⋘ M -> Proj b s ⋘ proj b M
 | refines_Inj b (s : exp n) M : s ⋘ M -> Inj b s ⋘ ret (inj b (thunk M))
 | refines_CaseS (s : exp n) t1 t2 M N1 N2 N1' N2':
-    s ⋘ M -> t1 ⋘ N1 -> t2 ⋘ N2 -> N1' = N1 ⟨ren_up⟩ -> N2' = N2 ⟨ren_up⟩ ->
+    s ⋘ M -> t1 ⋘ N1 -> t2 ⋘ N2 -> N1' = ren_comp ren_up N1 -> N2' = ren_comp ren_up N2 ->
     CaseS s t1 t2 ⋘ $ <- M; caseS (var_value var_zero) N1' N2'
 | refines_CaseS2 (s : exp n) t1 t2 V N1 N2 :
     s ⋘ ret V -> t1 ⋘ N1 -> t2 ⋘ N2 ->
-    CaseS s t1 t2 ⋘ (caseS (var_value var_zero) (N1 ⟨ren_up⟩) (N2 ⟨ren_up⟩))[V..]
+    CaseS s t1 t2 ⋘ subst_comp (V..) (caseS (var_value var_zero) (ren_comp ren_up N1) (ren_comp ren_up N2))
 | refines_FT (s : exp n) M : s ⋘ M -> s ⋘ force (thunk M)
 where "s ⋘ C" := (@refines _ s C).
 Hint Constructors refines.
@@ -257,7 +256,7 @@ Notation "s ⋙ t" := (t ⋘ s) (at level 50).
 Lemma trans_refines : forall n (C : comp n) s, s ↦n C -> C ⋙ s.
 Proof.
   induction 1; eauto; subst.
-  destruct (eagerlet_inv M (caseS (var_value var_zero) (N1⟨ren_up⟩) (N2⟨ren_up⟩))) as [ [-> ] | (? & -> & ?) ].
+  destruct (eagerlet_inv M (caseS (var_value var_zero) (ren_comp ren_up N1) (ren_comp ren_up N2))) as [ [-> ] | (? & -> & ?) ].
   - eapply refines_CaseS; subst; firstorder; eauto.
   - rewrite e. eapply refines_CaseS2; eauto.
 Qed.
@@ -270,7 +269,7 @@ Qed.
 
 Lemma refines_ren (n m : nat) (M : exp n) M' (sigma : fin n -> fin m) :
       M ⋘ M' ->
-      M ⟨sigma⟩ ⋘ M'⟨sigma⟩.
+      ren_exp sigma M ⋘ ren_comp sigma M'.
 Proof.
   intros. revert m sigma; induction X; try now (cbn; intros; eauto; try econstructor; eauto).
   - intros. subst. asimpl. econstructor; eauto; now asimpl.
@@ -281,13 +280,13 @@ Qed.
 
 Lemma refines_subst (n m : nat) (M : exp n) M' (sigma : fin n -> exp m) sigma' :
   M ⋘ M' -> (forall i, sigma i ⋘ force (sigma' i)) ->
-  M[sigma] ⋘ M'[sigma'].
+  subst_exp sigma M ⋘ subst_comp sigma' M'.
 Proof.
   intros. revert m sigma sigma' X0; induction X; try now (cbn; intros; eauto; try econstructor; eauto).
   - intros. asimpl. econstructor. apply IHX.
     auto_case. asimpl. unfold funcomp.
     apply refines_ren with (M' := (sigma' f) !) (sigma := ↑). eauto.
-  - intros. subst. cbn. asimpl. eapply refines_CaseS with (N1 := N1[ (up_value_value sigma')]) (N2 := N2[ (up_value_value sigma')]); eauto;
+  - intros. subst. cbn. asimpl. eapply refines_CaseS with (N1 := subst_comp (up_value_value sigma') N1) (N2 := subst_comp (up_value_value sigma') N2); eauto;
                                   try now asimpl.
     + apply IHX2. auto_case; asimpl; eauto.
       unfold funcomp.
@@ -295,9 +294,9 @@ Proof.
     + apply IHX3. auto_case; asimpl; eauto.
       unfold funcomp.
       apply refines_ren with (M' := (sigma' f) !) . eauto.
-  - intros. asimpl. eapply refines_help.
+  - intros. eapply refines_help.
     eapply refines_CaseS2.
-    4, 5: now asimpl.
+    4, 5 : now asimpl.
     + eauto.
     + apply IHX2. auto_case. asimpl.
       unfold funcomp.
@@ -313,14 +312,13 @@ Qed.
 Notation injective f := (forall x1 x2, f x1 = f x2 -> x1 = x2).
 
 Lemma ren_inj n   :
-  (forall (s t : value n) m (rho : fin n -> fin m), injective rho -> s⟨rho⟩ = t⟨rho⟩ -> s = t) /\
-  (forall (s t: comp n) m (rho : fin n -> fin m), injective rho -> s⟨rho⟩ = t⟨rho⟩ -> s = t).
+  (forall (s t : value n) m (rho : fin n -> fin m), injective rho -> ren_value rho s = ren_value rho t -> s = t) /\
+  (forall (s t: comp n) m (rho : fin n -> fin m), injective rho -> ren_comp rho s = ren_comp rho t -> s = t).
 Proof.
   revert n. eapply mutind_val_comp; cbn; asimpl; intros.
   all: try now (destruct t; inv H0; firstorder congruence).
   all: try now (destruct t; inv H2; f_equal; firstorder congruence).
   all: try now (destruct t; inv H1; f_equal; firstorder congruence).
-  - destruct t; inv H0. eapply H in H2. now rewrite H2.
   - destruct t; inv H1; f_equal. eapply H; try eassumption.
     intros [] []; cbv; try congruence. intros. f_equal. inv H1. eauto.
   - destruct t; inv H2; f_equal; eauto. eapply H0; try eassumption.
