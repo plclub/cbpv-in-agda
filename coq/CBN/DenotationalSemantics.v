@@ -123,7 +123,8 @@ Lemma cbn_type_pres' {n : nat} (s : exp n) A Gamma :
 Proof.
   induction 1; cbn in *; eauto.
   - econstructor. eapply computation_typing_ext;
-                    eauto. unfold eval_ctx. now asimpl.
+      eauto. unfold eval_ctx.
+    fext; now asimpl.
   - replace (eval_ty (if b then B1 else B2)) with (if b then eval_ty B1 else eval_ty B2) by (now destruct b).
     now econstructor.
   - destruct b; now repeat econstructor.

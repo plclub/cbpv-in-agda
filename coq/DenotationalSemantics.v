@@ -395,7 +395,7 @@ Section LogicalRelation.
   Lemma cons_ctx_subst m c A C Gamma:
     forall (V:  (forall (i : fin m), CCBPVv (Gamma i))),
       A, Gamma ⊢ c : C ->
-                 A, null ⊢ c[up_value_value (fun i : fin m => V i)]  : C.
+                 A, null ⊢ subst_comp (up_value_value (fun i : fin m => V i)) c  : C.
   Proof.
     intros; eapply comp_typepres_substitution; eauto.
     intros []; cbn; eauto.
@@ -406,7 +406,7 @@ Section LogicalRelation.
   Lemma cons_twice_ctx_subst m c A1 A2 C Gamma:
     forall (V:  (forall (i : fin m), CCBPVv (Gamma i))),
       A1, A2, Gamma ⊢ c : C ->
-      A1, A2, null ⊢ c[up_value_value (up_value_value (fun i : fin m => V i))] : C.
+      A1, A2, null ⊢ subst_comp (up_value_value (up_value_value (fun i : fin m => V i))) c : C.
   Proof.
     intros; eapply comp_typepres_substitution; eauto.
     intros [ [] | ]; cbn; eauto.
@@ -514,7 +514,7 @@ Section LogicalRelation.
       specialize (H0 (extend (extend gamma d) d0) (extend' (extend' V H2) H3)).
       mp H0; [intros [ []|]; cbn; eauto|].
       eapply closure_ctx_eqv; eauto; cbn; symmetry.
-      assert (null ⊢ caseP (⟨ H2; H3 ⟩)(subst_comp (up_value_value (up_value_value (fun i : fin m => V i))) c) : C)
+      assert (null ⊢ caseP (pair H2 H3)(subst_comp (up_value_value (up_value_value (fun i : fin m => V i))) c) : C)
              as X by eauto.
       transitivity (mkCBPVc X).
       eapply val_obseq_cctx_congruence with (C := cctxCasePV •__v _); cbn.
