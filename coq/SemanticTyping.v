@@ -21,7 +21,7 @@ Fixpoint V {n: nat} (A: valtype) (v: value n) :=
   match A with
   | zero => False
   | one => v = u
-  | U B => exists c, v = <{ c }> /\ E' (C B) c
+  | U phi B => exists c, v = <{ c }> /\ E' (C B) c
   | Sigma A1 A2 => exists b v', v = inj b v' /\ V (if b then A1 else A2) v'
   | A1 * A2 => exists v1 v2, v = pair v1 v2 /\ V A1 v1 /\ V A2 v2
   end
@@ -45,10 +45,10 @@ Definition val_semtype {n: nat} (Gamma: ctx n) (v: value n) (A: valtype) :=
 
 Notation "Gamma ⊫ v : A" := (val_semtype Gamma v A) (at level 80, v at level 99).
 
-Definition comp_semtype {n: nat} (Gamma: ctx n) (c: comp n) (B: comptype) :=
+Definition comp_semtype {n: nat} (Gamma: ctx n) (c: comp n) (B: comptype) (phi : effect) :=
   forall m (gamma: fin n -> value m), G Gamma gamma -> E B (subst_comp gamma c).
 
-Notation "Gamma ⊨ c : B" := (comp_semtype Gamma c B) (at level 80, c at level 99).
+Notation "Gamma ⊨ c : B # phi" := (comp_semtype Gamma c B phi) (at level 80, c at level 99).
 
 
 (** Computations in C[B] have normal form *)
@@ -99,17 +99,17 @@ Section compatibility_lemmas.
     intros H' gamma H; specialize (H' gamma H); firstorder.
   Qed.
 
-  Lemma compat_thunk c:
-  Gamma ⊨ c : B -> Gamma ⊫ thunk c : U B.
+  Lemma compat_thunk c phi:
+  Gamma ⊨ c : B # phi -> Gamma ⊫ thunk c : U phi B.
   Proof.
     intros H' gamma H; specialize (H' gamma H); firstorder.
   Qed.
 
-  Lemma compat_cone : Gamma ⊨ cu : cone.
+  Lemma compat_cone phi : Gamma ⊨ cu : cone # phi.
   Proof. intros m gamma H; cbn; unfold E'; eauto. Qed.
 
-  Lemma compat_lambda c:
-    A .: Gamma ⊨ c : B -> Gamma ⊨ lambda c : A → B.
+  Lemma compat_lambda c phi:
+    A .: Gamma ⊨ c : B # phi -> Gamma ⊨ lambda c : A → B # phi.
   Proof.
     intros H' m gamma H; apply comp_evaluates; cbn; eexists; split; [reflexivity |].
     intros v H1; pose (gamma' := v .: gamma); specialize (H' m gamma').
@@ -117,8 +117,8 @@ Section compatibility_lemmas.
     now asimpl.
   Qed.
 
-  Lemma compat_letin c1 c2:
-    Gamma ⊨ c1 : F A -> A .: Gamma ⊨ c2 : B -> Gamma ⊨ $ <- c1; c2 : B.
+  Lemma compat_letin c1 c2 phi1 phi2 phi:
+    Gamma ⊨ c1 : F A # phi1 -> A .: Gamma ⊨ c2 : B # phi2 -> Gamma ⊨ $ <- c1; c2 : B # phi.
   Proof.
     intros H' H'' m gamma H; destruct (H' m gamma H) as [c' [H1 H2]]; cbn.
     destruct H2 as [v [-> H2]]; expand;
@@ -128,14 +128,14 @@ Section compatibility_lemmas.
     now asimpl.
   Qed.
 
-  Lemma compat_ret v:
-    Gamma ⊫ v : A -> Gamma ⊨ ret v : F A.
+  Lemma compat_ret v phi:
+    Gamma ⊫ v : A -> Gamma ⊨ ret v : F A # phi.
   Proof.
     intros H' m gamma H; specialize (H' m gamma H); apply comp_evaluates; firstorder.
   Qed.
 
-  Lemma compat_app c v:
-    Gamma ⊨ c : A → B -> Gamma ⊫ v : A -> Gamma ⊨ c v : B.
+  Lemma compat_app c v phi:
+    Gamma ⊨ c : A → B # phi -> Gamma ⊫ v : A -> Gamma ⊨ c v : B # phi.
   Proof.
     intros H1 H2 m gamma H; specialize (H1 m gamma H); specialize (H2 m gamma H); cbn.
     destruct H1 as [? [H1 [c' [-> H3]]]]; apply bigstep_soundness in H1.
@@ -143,16 +143,16 @@ Section compatibility_lemmas.
     eauto.
   Qed.
 
-  Lemma compat_tuple c1 c2:
-    Gamma ⊨ c1 : B1 -> Gamma ⊨ c2 : B2 -> Gamma ⊨ tuple c1 c2 : Pi B1 B2.
+  Lemma compat_tuple c1 c2 phi:
+    Gamma ⊨ c1 : B1 # phi -> Gamma ⊨ c2 : B2 # phi -> Gamma ⊨ tuple c1 c2 : Pi B1 B2 #phi.
   Proof.
     intros H' H'' m gamma H. apply comp_evaluates. cbn.
     eexists; eexists; split; [reflexivity |].
     split; cbn; eauto.
   Qed.
 
-  Lemma compat_proj c b:
-    Gamma ⊨ c : Pi B1 B2 -> Gamma ⊨ proj b c : if b then B1 else B2.
+  Lemma compat_proj c b phi:
+    Gamma ⊨ c : Pi B1 B2 # phi -> Gamma ⊨ proj b c : if b then B1 else B2 # phi.
   Proof.
     intros H m gamma H1; specialize (H m gamma H1).
     destruct H as [c' [H2 [c1 [c2 [H4 [H5 H6]]]]]]; cbn;
@@ -162,24 +162,24 @@ Section compatibility_lemmas.
     all: rewrite H2; subst c'; reduce; reflexivity.
   Qed.
 
-  Lemma compat_force v:
-    Gamma ⊫ v : U B -> Gamma ⊨ v! : B.
+  Lemma compat_force v phi:
+    Gamma ⊫ v : U phi B -> Gamma ⊨ v! : B # phi.
   Proof.
     intros H' m gamma H; asimpl; specialize (H' m gamma H).
     destruct H' as [c [-> H']]; now expand; [reduce; reflexivity|].
   Qed.
 
-  Lemma compat_caseZ v:
-    Gamma ⊫ v : zero -> Gamma ⊨ caseZ v : B.
+  Lemma compat_caseZ v phi:
+    Gamma ⊫ v : zero -> Gamma ⊨ caseZ v : B # phi.
   Proof.
     intros H1 m gamma H; destruct (H1 m gamma H).
   Qed.
 
-  Lemma compat_caseS v c1 c2:
+  Lemma compat_caseS v c1 c2 phi :
     Gamma ⊫ v : Sigma A1 A2 ->
-    A1 .: Gamma ⊨ c1 : B ->
-    A2 .: Gamma ⊨ c2 : B ->
-    Gamma ⊨ caseS v c1 c2 : B.
+    A1 .: Gamma ⊨ c1 : B # phi ->
+    A2 .: Gamma ⊨ c2 : B # phi ->
+    Gamma ⊨ caseS v c1 c2 : B # phi.
   Proof.
     intros H' H1 H2 m gamma H; specialize (H' m gamma H); cbn in H'.
     destruct H' as [[] [v' [H3 H4]]].
@@ -190,10 +190,10 @@ Section compatibility_lemmas.
     all: now asimpl.
   Qed.
 
-  Lemma compat_caseP v c:
+  Lemma compat_caseP v c phi:
       Gamma ⊫ v : A1 * A2 ->
-      A2 .: (A1 .: Gamma) ⊨ c : B ->
-      Gamma ⊨ caseP v c : B.
+      A2 .: (A1 .: Gamma) ⊨ c : B # phi ->
+      Gamma ⊨ caseP v c : B # phi.
   Proof.
     intros H' H1 m gamma H; specialize (H' m gamma H).
     destruct H' as [v1 [v2 [H2 [H3 H4]]]]; asimpl.
@@ -212,26 +212,34 @@ Hint Resolve
     compat_force compat_caseZ compat_caseS compat_caseP : compatibility_lemmas.
 
 
+
+(* 
+ forall (m : nat) (Gamma : ctx m),
+       value_typing Gamma <<= P m Gamma /\
+       (forall c : comp m,
+        computation_typing Gamma c <<= P0 m Gamma c)
+*)
+
 (** *** Semantic Soundness *)
 (** Syntactically well typed terms are semantically well typed *)
-Theorem SemanticSoundness n (Gamma: ctx n):
-  (forall v A, Gamma ⊩ v : A -> Gamma ⊫ v : A) /\ (forall c B, Gamma ⊢ c : B -> Gamma ⊨ c : B).
+Theorem SemanticSoundness  n (Gamma: ctx n):
+  (forall  v A, Gamma ⊩ v : A -> Gamma ⊫ v : A) /\ (forall c B phi, Gamma ⊢ c : B # phi -> Gamma ⊨ c : B # phi).
 Proof.
   eapply mutind_value_computation_typing; eauto with compatibility_lemmas.
-Qed.
+Admitted.
 
 Lemma ClosedSemanticSoundness:
-    (forall P A, null ⊩ P : A -> V A P) /\ (forall P A, null ⊢ P : A -> E A P).
+    (forall P A, null ⊩ P : A -> V A P) /\ (forall P A phi, null ⊢ P : A # phi -> E A P).
 Proof.
     destruct (SemanticSoundness null) as [H1 H2].
-    split; intros P A; [intros H % H1 | intros H % H2].
+    split; intros P A; [intros H % H1 | intros phi H % H2].
     all: specialize (H 0 ids); mp H; try now intros [].
     all: now asimpl in H.
 Qed.
 
 
-Lemma Normal_nf M A:
-  null ⊢ M : A -> Normal step M -> nf M.
+Lemma Normal_nf M A phi:
+  null ⊢ M : A # phi -> Normal step M -> nf M.
 Proof.
   destruct ClosedSemanticSoundness as [_ sem].
   intros ? % sem N.

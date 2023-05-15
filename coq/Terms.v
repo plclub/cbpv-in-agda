@@ -19,6 +19,7 @@ Combined Scheme mutind_val_comp from value_ind_2, comp_ind_2.
   Values in valtype are types of values
   and values in comptype are types of computations
 *)
+(*
 (** ** Value Types*)
 Inductive valtype : Type :=
 | zero: valtype
@@ -33,6 +34,7 @@ with comptype : Type :=
 | F: valtype -> comptype
 | Pi: comptype -> comptype -> comptype
 | arrow: valtype -> comptype -> comptype.
+*)
 
 (** Combined induction schemes for types *)
 Scheme valtype_ind_2 := Induction for valtype Sort Prop

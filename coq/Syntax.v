@@ -2,11 +2,28 @@ Require Export fintype.
 
 
 
+Section effect.
+Inductive effect  : Type :=
+  | tick : effect 
+  | add : effect   -> effect   -> effect 
+  | pure : effect .
+
+Lemma congr_tick  : tick  = tick  .
+Proof. congruence. Qed.
+
+Lemma congr_add  { s0 : effect   } { s1 : effect   } { t0 : effect   } { t1 : effect   } (H1 : s0 = t0) (H2 : s1 = t1) : add s0 s1 = add t0 t1 .
+Proof. congruence. Qed.
+
+Lemma congr_pure  : pure  = pure  .
+Proof. congruence. Qed.
+
+End effect.
+
 Section valtypecomptype.
 Inductive valtype  : Type :=
   | zero : valtype 
   | one : valtype 
-  | U : comptype   -> valtype 
+  | U : effect   -> comptype   -> valtype 
   | Sigma : valtype   -> valtype   -> valtype 
   | cross : valtype   -> valtype   -> valtype 
  with comptype  : Type :=
@@ -21,7 +38,7 @@ Proof. congruence. Qed.
 Lemma congr_one  : one  = one  .
 Proof. congruence. Qed.
 
-Lemma congr_U  { s0 : comptype   } { t0 : comptype   } (H1 : s0 = t0) : U s0 = U t0 .
+Lemma congr_U  { s0 : effect   } { s1 : comptype   } { t0 : effect   } { t1 : comptype   } (H1 : s0 = t0) (H2 : s1 = t1) : U s0 s1 = U t0 t1 .
 Proof. congruence. Qed.
 
 Lemma congr_Sigma  { s0 : valtype   } { s1 : valtype   } { t0 : valtype   } { t1 : valtype   } (H1 : s0 = t0) (H2 : s1 = t1) : Sigma s0 s1 = Sigma t0 t1 .
@@ -63,7 +80,8 @@ Inductive value (nvalue : nat) : Type :=
   | proj : bool   -> comp  (nvalue) -> comp (nvalue)
   | caseZ : value  (nvalue) -> comp (nvalue)
   | caseS : value  (nvalue) -> comp  ((S) nvalue) -> comp  ((S) nvalue) -> comp (nvalue)
-  | caseP : value  (nvalue) -> comp  ((S) ((S) nvalue)) -> comp (nvalue).
+  | caseP : value  (nvalue) -> comp  ((S) ((S) nvalue)) -> comp (nvalue)
+  | tock : comp (nvalue).
 
 Lemma congr_u { mvalue : nat } : u (mvalue) = u (mvalue) .
 Proof. congruence. Qed.
@@ -110,6 +128,9 @@ Proof. congruence. Qed.
 Lemma congr_caseP { mvalue : nat } { s0 : value  (mvalue) } { s1 : comp  ((S) ((S) mvalue)) } { t0 : value  (mvalue) } { t1 : comp  ((S) ((S) mvalue)) } (H1 : s0 = t0) (H2 : s1 = t1) : caseP (mvalue) s0 s1 = caseP (mvalue) t0 t1 .
 Proof. congruence. Qed.
 
+Lemma congr_tock { mvalue : nat } : tock (mvalue) = tock (mvalue) .
+Proof. congruence. Qed.
+
 Definition upRen_value_value { m : nat } { n : nat } (xi : (fin) (m) -> (fin) (n)) : (fin) ((S) (m)) -> (fin) ((S) (n)) :=
   (up_ren) xi.
 
@@ -134,6 +155,7 @@ Fixpoint ren_value { mvalue : nat } { nvalue : nat } (xivalue : (fin) (mvalue) -
     | caseZ (_) s0 => caseZ (nvalue) ((ren_value xivalue) s0)
     | caseS (_) s0 s1 s2 => caseS (nvalue) ((ren_value xivalue) s0) ((ren_comp (upRen_value_value xivalue)) s1) ((ren_comp (upRen_value_value xivalue)) s2)
     | caseP (_) s0 s1 => caseP (nvalue) ((ren_value xivalue) s0) ((ren_comp (upRen_value_value (upRen_value_value xivalue))) s1)
+    | tock (_)  => tock (nvalue)
     end.
 
 Definition up_value_value { m : nat } { nvalue : nat } (sigma : (fin) (m) -> value (nvalue)) : (fin) ((S) (m)) -> value ((S) nvalue) :=
@@ -160,6 +182,7 @@ Fixpoint subst_value { mvalue : nat } { nvalue : nat } (sigmavalue : (fin) (mval
     | caseZ (_) s0 => caseZ (nvalue) ((subst_value sigmavalue) s0)
     | caseS (_) s0 s1 s2 => caseS (nvalue) ((subst_value sigmavalue) s0) ((subst_comp (up_value_value sigmavalue)) s1) ((subst_comp (up_value_value sigmavalue)) s2)
     | caseP (_) s0 s1 => caseP (nvalue) ((subst_value sigmavalue) s0) ((subst_comp (up_value_value (up_value_value sigmavalue))) s1)
+    | tock (_)  => tock (nvalue)
     end.
 
 Definition upId_value_value { mvalue : nat } (sigma : (fin) (mvalue) -> value (mvalue)) (Eq : forall x, sigma x = (var_value (mvalue)) x) : forall x, (up_value_value sigma) x = (var_value ((S) mvalue)) x :=
@@ -189,6 +212,7 @@ Fixpoint idSubst_value { mvalue : nat } (sigmavalue : (fin) (mvalue) -> value (m
     | caseZ (_) s0 => congr_caseZ ((idSubst_value sigmavalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((idSubst_value sigmavalue Eqvalue) s0) ((idSubst_comp (up_value_value sigmavalue) (upId_value_value (_) Eqvalue)) s1) ((idSubst_comp (up_value_value sigmavalue) (upId_value_value (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((idSubst_value sigmavalue Eqvalue) s0) ((idSubst_comp (up_value_value (up_value_value sigmavalue)) (upId_value_value (_) (upId_value_value (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition upExtRen_value_value { m : nat } { n : nat } (xi : (fin) (m) -> (fin) (n)) (zeta : (fin) (m) -> (fin) (n)) (Eq : forall x, xi x = zeta x) : forall x, (upRen_value_value xi) x = (upRen_value_value zeta) x :=
@@ -218,6 +242,7 @@ Fixpoint extRen_value { mvalue : nat } { nvalue : nat } (xivalue : (fin) (mvalue
     | caseZ (_) s0 => congr_caseZ ((extRen_value xivalue zetavalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((extRen_value xivalue zetavalue Eqvalue) s0) ((extRen_comp (upRen_value_value xivalue) (upRen_value_value zetavalue) (upExtRen_value_value (_) (_) Eqvalue)) s1) ((extRen_comp (upRen_value_value xivalue) (upRen_value_value zetavalue) (upExtRen_value_value (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((extRen_value xivalue zetavalue Eqvalue) s0) ((extRen_comp (upRen_value_value (upRen_value_value xivalue)) (upRen_value_value (upRen_value_value zetavalue)) (upExtRen_value_value (_) (_) (upExtRen_value_value (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition upExt_value_value { m : nat } { nvalue : nat } (sigma : (fin) (m) -> value (nvalue)) (tau : (fin) (m) -> value (nvalue)) (Eq : forall x, sigma x = tau x) : forall x, (up_value_value sigma) x = (up_value_value tau) x :=
@@ -247,6 +272,7 @@ Fixpoint ext_value { mvalue : nat } { nvalue : nat } (sigmavalue : (fin) (mvalue
     | caseZ (_) s0 => congr_caseZ ((ext_value sigmavalue tauvalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((ext_value sigmavalue tauvalue Eqvalue) s0) ((ext_comp (up_value_value sigmavalue) (up_value_value tauvalue) (upExt_value_value (_) (_) Eqvalue)) s1) ((ext_comp (up_value_value sigmavalue) (up_value_value tauvalue) (upExt_value_value (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((ext_value sigmavalue tauvalue Eqvalue) s0) ((ext_comp (up_value_value (up_value_value sigmavalue)) (up_value_value (up_value_value tauvalue)) (upExt_value_value (_) (_) (upExt_value_value (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition up_ren_ren_value_value { k : nat } { l : nat } { m : nat } (xi : (fin) (k) -> (fin) (l)) (tau : (fin) (l) -> (fin) (m)) (theta : (fin) (k) -> (fin) (m)) (Eq : forall x, ((funcomp) tau xi) x = theta x) : forall x, ((funcomp) (upRen_value_value tau) (upRen_value_value xi)) x = (upRen_value_value theta) x :=
@@ -273,6 +299,7 @@ Fixpoint compRenRen_value { kvalue : nat } { lvalue : nat } { mvalue : nat } (xi
     | caseZ (_) s0 => congr_caseZ ((compRenRen_value xivalue zetavalue rhovalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((compRenRen_value xivalue zetavalue rhovalue Eqvalue) s0) ((compRenRen_comp (upRen_value_value xivalue) (upRen_value_value zetavalue) (upRen_value_value rhovalue) (up_ren_ren (_) (_) (_) Eqvalue)) s1) ((compRenRen_comp (upRen_value_value xivalue) (upRen_value_value zetavalue) (upRen_value_value rhovalue) (up_ren_ren (_) (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((compRenRen_value xivalue zetavalue rhovalue Eqvalue) s0) ((compRenRen_comp (upRen_value_value (upRen_value_value xivalue)) (upRen_value_value (upRen_value_value zetavalue)) (upRen_value_value (upRen_value_value rhovalue)) (up_ren_ren (_) (_) (_) (up_ren_ren (_) (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition up_ren_subst_value_value { k : nat } { l : nat } { mvalue : nat } (xi : (fin) (k) -> (fin) (l)) (tau : (fin) (l) -> value (mvalue)) (theta : (fin) (k) -> value (mvalue)) (Eq : forall x, ((funcomp) tau xi) x = theta x) : forall x, ((funcomp) (up_value_value tau) (upRen_value_value xi)) x = (up_value_value theta) x :=
@@ -302,6 +329,7 @@ Fixpoint compRenSubst_value { kvalue : nat } { lvalue : nat } { mvalue : nat } (
     | caseZ (_) s0 => congr_caseZ ((compRenSubst_value xivalue tauvalue thetavalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((compRenSubst_value xivalue tauvalue thetavalue Eqvalue) s0) ((compRenSubst_comp (upRen_value_value xivalue) (up_value_value tauvalue) (up_value_value thetavalue) (up_ren_subst_value_value (_) (_) (_) Eqvalue)) s1) ((compRenSubst_comp (upRen_value_value xivalue) (up_value_value tauvalue) (up_value_value thetavalue) (up_ren_subst_value_value (_) (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((compRenSubst_value xivalue tauvalue thetavalue Eqvalue) s0) ((compRenSubst_comp (upRen_value_value (upRen_value_value xivalue)) (up_value_value (up_value_value tauvalue)) (up_value_value (up_value_value thetavalue)) (up_ren_subst_value_value (_) (_) (_) (up_ren_subst_value_value (_) (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition up_subst_ren_value_value { k : nat } { lvalue : nat } { mvalue : nat } (sigma : (fin) (k) -> value (lvalue)) (zetavalue : (fin) (lvalue) -> (fin) (mvalue)) (theta : (fin) (k) -> value (mvalue)) (Eq : forall x, ((funcomp) (ren_value zetavalue) sigma) x = theta x) : forall x, ((funcomp) (ren_value (upRen_value_value zetavalue)) (up_value_value sigma)) x = (up_value_value theta) x :=
@@ -331,6 +359,7 @@ Fixpoint compSubstRen_value { kvalue : nat } { lvalue : nat } { mvalue : nat } (
     | caseZ (_) s0 => congr_caseZ ((compSubstRen_value sigmavalue zetavalue thetavalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((compSubstRen_value sigmavalue zetavalue thetavalue Eqvalue) s0) ((compSubstRen_comp (up_value_value sigmavalue) (upRen_value_value zetavalue) (up_value_value thetavalue) (up_subst_ren_value_value (_) (_) (_) Eqvalue)) s1) ((compSubstRen_comp (up_value_value sigmavalue) (upRen_value_value zetavalue) (up_value_value thetavalue) (up_subst_ren_value_value (_) (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((compSubstRen_value sigmavalue zetavalue thetavalue Eqvalue) s0) ((compSubstRen_comp (up_value_value (up_value_value sigmavalue)) (upRen_value_value (upRen_value_value zetavalue)) (up_value_value (up_value_value thetavalue)) (up_subst_ren_value_value (_) (_) (_) (up_subst_ren_value_value (_) (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition up_subst_subst_value_value { k : nat } { lvalue : nat } { mvalue : nat } (sigma : (fin) (k) -> value (lvalue)) (tauvalue : (fin) (lvalue) -> value (mvalue)) (theta : (fin) (k) -> value (mvalue)) (Eq : forall x, ((funcomp) (subst_value tauvalue) sigma) x = theta x) : forall x, ((funcomp) (subst_value (up_value_value tauvalue)) (up_value_value sigma)) x = (up_value_value theta) x :=
@@ -360,6 +389,7 @@ Fixpoint compSubstSubst_value { kvalue : nat } { lvalue : nat } { mvalue : nat }
     | caseZ (_) s0 => congr_caseZ ((compSubstSubst_value sigmavalue tauvalue thetavalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((compSubstSubst_value sigmavalue tauvalue thetavalue Eqvalue) s0) ((compSubstSubst_comp (up_value_value sigmavalue) (up_value_value tauvalue) (up_value_value thetavalue) (up_subst_subst_value_value (_) (_) (_) Eqvalue)) s1) ((compSubstSubst_comp (up_value_value sigmavalue) (up_value_value tauvalue) (up_value_value thetavalue) (up_subst_subst_value_value (_) (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((compSubstSubst_value sigmavalue tauvalue thetavalue Eqvalue) s0) ((compSubstSubst_comp (up_value_value (up_value_value sigmavalue)) (up_value_value (up_value_value tauvalue)) (up_value_value (up_value_value thetavalue)) (up_subst_subst_value_value (_) (_) (_) (up_subst_subst_value_value (_) (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Definition rinstInst_up_value_value { m : nat } { nvalue : nat } (xi : (fin) (m) -> (fin) (nvalue)) (sigma : (fin) (m) -> value (nvalue)) (Eq : forall x, ((funcomp) (var_value (nvalue)) xi) x = sigma x) : forall x, ((funcomp) (var_value ((S) nvalue)) (upRen_value_value xi)) x = (up_value_value sigma) x :=
@@ -389,6 +419,7 @@ Fixpoint rinst_inst_value { mvalue : nat } { nvalue : nat } (xivalue : (fin) (mv
     | caseZ (_) s0 => congr_caseZ ((rinst_inst_value xivalue sigmavalue Eqvalue) s0)
     | caseS (_) s0 s1 s2 => congr_caseS ((rinst_inst_value xivalue sigmavalue Eqvalue) s0) ((rinst_inst_comp (upRen_value_value xivalue) (up_value_value sigmavalue) (rinstInst_up_value_value (_) (_) Eqvalue)) s1) ((rinst_inst_comp (upRen_value_value xivalue) (up_value_value sigmavalue) (rinstInst_up_value_value (_) (_) Eqvalue)) s2)
     | caseP (_) s0 s1 => congr_caseP ((rinst_inst_value xivalue sigmavalue Eqvalue) s0) ((rinst_inst_comp (upRen_value_value (upRen_value_value xivalue)) (up_value_value (up_value_value sigmavalue)) (rinstInst_up_value_value (_) (_) (rinstInst_up_value_value (_) (_) Eqvalue))) s1)
+    | tock (_)  => congr_tock 
     end.
 
 Lemma rinstInst_value { mvalue : nat } { nvalue : nat } (xivalue : (fin) (mvalue) -> (fin) (nvalue)) : ren_value xivalue = subst_value ((funcomp) (var_value (nvalue)) xivalue) .
@@ -496,6 +527,8 @@ Arguments caseZ {nvalue}.
 Arguments caseS {nvalue}.
 
 Arguments caseP {nvalue}.
+
+Arguments tock {nvalue}.
 
 Global Instance Subst_value { mvalue : nat } { nvalue : nat } : Subst1 ((fin) (mvalue) -> value (nvalue)) (value (mvalue)) (value (nvalue)) := @subst_value (mvalue) (nvalue) .
 

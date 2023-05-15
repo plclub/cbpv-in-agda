@@ -31,6 +31,7 @@ Inductive pstep {n: nat}: comp n -> comp n -> Prop :=
     subst_comp (v..) (if b then c1 else c2) = c -> caseS (inj b v) c1 c2 ≽ c
 | pstepCaseP v1 v2 (c: comp (S (S n))) c':
     subst_comp (v2,v1..) c = c' -> caseP (pair v1 v2) c ≽ c'
+| pstepTock :  tock ≽ ret u
 where "A '≽' B" := (pstep A B).
 
 
@@ -88,6 +89,8 @@ Inductive bigstep {n: nat}: comp n -> comp n -> Prop :=
   subst_comp (v..) (if b then c1 else c2) ▷ c -> caseS (inj b v) c1 c2 ▷ c
 | bigstepCaseP c c' (v1 v2: value n):
     subst_comp (v2,v1..) c ▷ c' -> caseP (pair v1 v2) c ▷ c'
+| bigstepTock :
+    tock ▷ ret u
 where "A ▷ B" := (bigstep A B).
 
 Hint Constructors bigstep.
@@ -197,7 +200,7 @@ Qed.
 (** The bigstep semantic is closed under expasion by the operational semantics *)
 Lemma bigstep_primitive_cons {n: nat} (c c' c'': comp n): c ≽ c' -> c' ▷ c'' -> c ▷ c''.
 Proof.
-  intros H; inv H; intros H; econstructor; eauto.
+  intros H; inv H; intros H; try econstructor; eauto. inv H; eauto.
 Qed.
 
 

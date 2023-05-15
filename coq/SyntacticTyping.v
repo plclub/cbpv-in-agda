@@ -10,8 +10,18 @@ Import List Notations.
 Require Export CBPV.Terms CBPV.Base CBPV.Semantics.
 Import CommaNotation.
 
+Inductive subeff : effect -> effect -> Prop :=
+| sub_pure phi : subeff pure phi
+| sub_add_pure_left phi : subeff (add pure phi) phi
+| sub_add_pure_right phi : subeff (add phi phi) phi
+| sub_refl phi : subeff phi phi
+ 
+.
+Hint Constructors subeff.
+
+
 (** * Syntactic Typing Judement  *)
-Reserved Notation "Gamma ⊢ c : A" (at level 80, c at level 99).
+Reserved Notation "Gamma ⊢ c : A # phi" (at level 80, c at level 99).
 Reserved Notation "Gamma ⊩ v : A" (at level 80, v at level 99).
 
 (** Syntactic typing judgement using DeBrujin indices *)
@@ -25,38 +35,48 @@ Inductive value_typing {m: nat} (Gamma: ctx m) : value m -> valtype -> Type :=
     Gamma ⊩ v1 : A1 -> Gamma ⊩ v2 : A2 -> Gamma ⊩ pair v1 v2 : cross A1 A2
 | typeSum A1 A2 (b: bool) v:
     Gamma ⊩ v : (if b then A1 else A2) -> Gamma ⊩ inj b v : Sigma A1 A2
-| typeThunk c A:
-    Gamma ⊢ c : A -> Gamma ⊩ thunk c : U A
+| typeThunk c A (phi : effect) : 
+    Gamma ⊢ c : A # phi -> Gamma ⊩ thunk c : (U phi A ) 
+
 where "Gamma ⊩ v : A" := (value_typing Gamma v A)
 
 (** ** Computation Typing Judgement *)
-with computation_typing {m: nat} (Gamma: ctx m) : comp m -> comptype -> Type :=
-| typeCone: Gamma ⊢ cu : cone
-| typeLambda (c: comp (S m)) A B:
-    A .: Gamma ⊢ c : B -> (Gamma ⊢ lambda c : A → B)
-| typeLetin c1 c2 A B:
-    Gamma ⊢ c1 : F A -> A .: Gamma ⊢ c2 : B -> Gamma ⊢ $ <- c1; c2 : B
-| typeRet v A:
-    Gamma ⊩ v : A -> Gamma ⊢ ret v : F A
-| typeApp c v A B:
-    Gamma ⊢ c : A → B -> Gamma ⊩ v : A -> Gamma ⊢ c v : B
-| typeTuple c1 c2 B1 B2:
-    Gamma ⊢ c1 : B1  -> Gamma ⊢ c2 : B2 -> Gamma ⊢ tuple c1 c2 : Pi B1 B2
-| typeProj b c B1 B2:
-    Gamma ⊢ c : Pi B1 B2 -> Gamma ⊢ proj b c : (if b then B1 else B2)
-| typeForce v A:
-    Gamma ⊩ v : U A -> Gamma ⊢ v! : A
-| typeCaseZ v A: Gamma ⊩ v : zero -> Gamma ⊢ caseZ v : A
-| typeCaseS v c1 c2 A1 A2 C:
+with computation_typing {m: nat} (Gamma: ctx m) : comp m -> comptype -> effect -> Type :=
+| typeCone phi: Gamma ⊢ cu : cone # phi
+
+| typeLambda (c: comp (S m)) A B phi:
+    A .: Gamma ⊢ c : B # phi -> (Gamma ⊢ lambda c : A → B # phi)
+
+| typeLetin c1 c2 A B phi1 phi2 phi:
+    Gamma ⊢ c1 : F A # phi1 -> A .: Gamma ⊢ c2 : B # phi2 
+    -> subeff (add phi1 phi2) phi
+    -> Gamma ⊢ $ <- c1; c2 : B # phi
+| typeRet v A phi:
+    Gamma ⊩ v : A -> Gamma ⊢ ret v : F A # phi
+| typeApp c v A B phi:
+    Gamma ⊢ c : A → B # phi -> Gamma ⊩ v : A -> Gamma ⊢ c v : B # phi
+| typeTuple c1 c2 B1 B2 phi :
+    Gamma ⊢ c1 : B1 # phi -> Gamma ⊢ c2 : B2 # phi -> Gamma ⊢ tuple c1 c2 : Pi B1 B2 # phi
+| typeProj b c B1 B2 phi:
+    Gamma ⊢ c : Pi B1 B2 # phi -> Gamma ⊢ proj b c : (if b then B1 else B2) # phi
+| typeForce v A phi1 phi2:
+    Gamma ⊩ v : U phi1 A -> subeff phi1 phi2 -> Gamma ⊢ v! : A # phi2
+| typeCaseZ v A phi : Gamma ⊩ v : zero -> Gamma ⊢ caseZ v : A # phi
+| typeCaseS v c1 c2 A1 A2 C phi:
     Gamma ⊩ v : Sigma A1 A2 ->
-    A1, Gamma ⊢ c1 : C ->
-    A2, Gamma ⊢ c2 : C ->
-    Gamma ⊢ caseS v c1 c2 : C
-| typeCaseP v c A B C:
+    A1, Gamma ⊢ c1 : C # phi ->
+    A2, Gamma ⊢ c2 : C # phi ->
+    Gamma ⊢ caseS v c1 c2 : C # phi
+| typeCaseP v c A B C phi:
     Gamma ⊩ v : A * B ->
-    B, A, Gamma  ⊢ c : C ->
-    Gamma ⊢ caseP v c : C
-where "Gamma ⊢ c : A" := (@computation_typing _ Gamma c A).
+    B, A, Gamma  ⊢ c : C # phi ->
+    Gamma ⊢ caseP v c : C # phi 
+| typeTock phi : 
+    subeff tick phi ->
+    Gamma ⊢ tock : F one # phi 
+    
+                
+where "Gamma ⊢ c : A # phi" := (computation_typing Gamma c A phi).
 
 Scheme value_typing_ind_2 := Minimality for value_typing Sort Prop
   with computation_typing_ind_2  := Minimality for computation_typing Sort Prop.
@@ -79,19 +99,18 @@ Hint Constructors computation_typing value_typing.
 (** Type judgement inversion *)
 Ltac invt :=
   match goal with
-  | [H: (_ ⊢ cu : _) |- _] => inv H
-  | [H: (_ ⊢ lambda _ : _) |- _] => inv H
-  | [H: (_ ⊢ _ ! : _) |- _] => inv H
-  | [H: (_ ⊢ $ <- _; _ : _) |- _] => inv H
-  | [H: (_ ⊢ ret _ : _) |- _] => inv H
-  | [H: (_ ⊢ app _ _ : _) |- _] => inv H
-  | [H: (_ ⊢ tuple _ _ : _) |- _] => inv H
-  | [H: (_ ⊢ proj _ _ : _) |- _] => inv H
-  | [H: (_ ⊢ _ ! : _) |- _] => inv H
-  | [H: (_ ⊢ proj _ _ : _) |- _] => inv H
-  | [H: (_ ⊢ caseZ _ : _) |- _] => inv H
-  | [H: (_ ⊢ caseS _ _ _ : _) |- _] => inv H
-  | [H: (_ ⊢ caseP _ _ : _) |- _] => inv H
+  | [H: (_ ⊢ cu : _ # _) |- _] => inv H
+  | [H: (_ ⊢ lambda _ : _ # _) |- _] => inv H
+  | [H: (_ ⊢ _ ! : _ # _) |- _] => inv H
+  | [H: (_ ⊢ $ <- _; _ : _ # _) |- _] => inv H
+  | [H: (_ ⊢ ret _ : _ # _) |- _] => inv H
+  | [H: (_ ⊢ app _ _ : _ # _ ) |- _] => inv H
+  | [H: (_ ⊢ tuple _ _ : _ # _ ) |- _] => inv H
+  | [H: (_ ⊢ proj _ _ : _ # _) |- _] => inv H
+  | [H: (_ ⊢ caseZ _ : _ # _ ) |- _] => inv H
+  | [H: (_ ⊢ caseS _ _ _ : _ # _) |- _] => inv H
+  | [H: (_ ⊢ caseP _ _ : _ # _) |- _] => inv H
+  | [H: (_ ⊢ tock : _ # _) |- _ ] => inv H
   | [H: (_ ⊩ var_value _ : _) |- _] => inv H
   | [H: (_ ⊩ u : _) |- _] => inv H
   | [H: (_ ⊩ pair _ _  : _) |- _] => inv H
@@ -113,8 +132,8 @@ Hint Resolve typeVar'.
 (** Type preservation under renaming  *)
 Fixpoint value_typepres_renaming n Gamma v A (H: Gamma ⊩ v : A)  m (delta: fin n -> fin m) Delta {struct H}:
   (forall i, Gamma i = Delta (delta i)) -> Delta ⊩ ren_value delta v : A
-with comp_typepres_renaming n Gamma c B (H: Gamma ⊢ c : B) m (delta: fin n -> fin m) Delta {struct H}:
-  (forall i, Gamma i = Delta (delta i)) -> Delta ⊢ ren_comp delta c : B.
+with comp_typepres_renaming n Gamma c B phi (H: Gamma ⊢ c : B # phi) m (delta: fin n -> fin m) Delta {struct H}:
+  (forall i, Gamma i = Delta (delta i)) -> Delta ⊢ ren_comp delta c : B # phi.
 Proof.
   all: destruct H; cbn; intros; eauto; econstructor; eauto;
     eapply comp_typepres_renaming; eauto.
@@ -125,8 +144,8 @@ Qed.
 (** Type preservation under substitution  *)
 Fixpoint value_typepres_substitution n (Gamma: ctx n) v A (H: Gamma ⊩ v : A)  m (sigma: fin n -> value m) Delta {struct H}:
   (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊩ subst_value sigma v : A
-with comp_typepres_substitution n (Gamma: ctx n) c B (H: Gamma ⊢ c : B) m (sigma: fin n -> value m) Delta {struct H}:
-  (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊢ subst_comp sigma c : B.
+with comp_typepres_substitution n (Gamma: ctx n) c B phi (H: Gamma ⊢ c : B # phi) m (sigma: fin n -> value m) Delta {struct H}:
+  (forall i, Delta ⊩ sigma i : Gamma i) -> Delta ⊢ subst_comp sigma c : B # phi.
 Proof.
     all: destruct H; cbn; intros; eauto; econstructor; eauto.
     all: eapply comp_typepres_substitution; eauto.
@@ -136,48 +155,70 @@ Qed.
 
 (** ** Preservation *)
 (** Type preservation under beta reduction  *)
-Lemma typepres_beta {n: nat} (Gamma: fin n -> valtype) c v A B:
-  A .: Gamma ⊢ c : B -> Gamma ⊩ v : A -> Gamma ⊢ subst_comp (v..) c : B.
+Lemma typepres_beta {n: nat} (Gamma: fin n -> valtype) c v A B phi:
+  A .: Gamma ⊢ c : B # phi -> Gamma ⊩ v : A -> Gamma ⊢ subst_comp (v..) c : B # phi.
 Proof.
   intros H1 H2; eapply (comp_typepres_substitution H1); intros []; cbn; asimpl; eauto.
 Qed.
 
 
-(** Type preservation under primitive reduction  *)
-Lemma primitive_preservation {n} (c c': comp n) Gamma A:
-  c ≽ c' -> Gamma ⊢ c : A -> inhab (Gamma ⊢ c' : A).
+Lemma subeff_addright phi1 phi2 phi: subeff (add phi1 phi2) phi -> subeff phi2 phi.
+Admitted.
+
+
+Lemma subeff_trans phi1 phi2 phi3: subeff phi1 phi2 -> subeff phi2 phi3 -> subeff phi1 phi3.
+Admitted.
+
+Hint Resolve subeff_addright.
+Hint Resolve 1 subeff_trans.
+
+Lemma type_subeff {n: nat} (Gamma: fin n -> valtype) c B phi: 
+  Gamma ⊢ c : B # phi -> forall psi, subeff phi psi -> Gamma ⊢ c : B # psi.
 Proof.
-  destruct 1; intros H1; repeat invt; try destruct b; constructor; eauto using typepres_beta.
+  induction 1; intros psi1 h. all: eauto.
+Qed.
+
+Hint Resolve type_subeff.
+
+(** Type preservation under primitive reduction  *)
+Lemma primitive_preservation {n} (c c': comp n) Gamma B phi:
+  c ≽ c' -> Gamma ⊢ c : B # phi -> inhab (Gamma ⊢ c' : B # phi).
+Proof.
+  destruct 1; intros H1; repeat invt; try destruct b. 
+  all: constructor; eauto using typepres_beta. 
   eapply comp_typepres_substitution; [eassumption |]; auto_case.
 Qed.
 
 
 (** Type preservation under reduction  *)
-Lemma preservation {n: nat} Gamma (c c': comp n) A:
-  c > c' -> Gamma ⊢ c : A -> inhab (Gamma ⊢ c' : A).
+Lemma preservation {n: nat} Gamma (c c': comp n) B phi:
+  c > c' -> Gamma ⊢ c : B # phi -> inhab (Gamma ⊢ c' : B # phi).
 Proof.
-  induction 1 in Gamma, A |-*; [ now apply primitive_preservation | idtac.. ];
-    intros; invt; destruct (IHstep _ _ X0); constructor; eauto.
+  induction 1 in Gamma, B, phi |-*; [ now apply primitive_preservation | idtac.. ].
+  all: intros; invt. 
+  all: destruct (IHstep _ _ _ X0). 
+  all: econstructor; eauto.
 Qed.
 
-Lemma preservation_steps n (Gamma: ctx n)(c c': comp n) A:
-    Gamma ⊢ c : A -> c >* c' -> inhab (Gamma ⊢ c' : A).
+Lemma preservation_steps n (Gamma: ctx n)(c c': comp n) A phi:
+    Gamma ⊢ c : A # phi  -> c >* c' -> inhab (Gamma ⊢ c' : A # phi).
 Proof.
   induction 2; eauto using preservation.
   specialize (preservation H X) as [H1]; eauto.
 Qed.
 
 (** ** Progress *)
-Lemma progress (e: comp 0) (B: comptype) :
-  null ⊢ e : B -> (exists e', e > e') \/ nf e.
+Lemma progress (e: comp 0) (B: comptype) (phi : effect) :
+  null ⊢ e : B # phi -> (exists e', e > e') \/ nf e.
 Proof with (left; eexists; eauto).
   enough (
-      forall n Gamma e B, Gamma ⊢ e : B ->
+      forall n Gamma e B phi, Gamma ⊢ e : B # phi->
       (match n return ctx n -> Prop with 0 => fun Gamma => Gamma = null | _ => fun  _ => False end) Gamma ->
       (exists e', e > e') \/ nf e
     ) by eauto.
   induction 1; destruct m; intuition; subst Gamma.
   1, 3, 5: destruct H1...
   1 - 3: inv H1; invt...
+  5: idtac...
   all: inv v0; try (destruct i)...
 Qed.

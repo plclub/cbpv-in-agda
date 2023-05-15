@@ -3,11 +3,17 @@ comptype : Type
 value : Type
 comp : Type
 bool : Type
+effect : Type
+
+tick : effect
+add : effect -> effect -> effect
+pure : effect
+
 
 
 zero: valtype
 one: valtype
-U: comptype -> valtype
+U: effect -> comptype -> valtype
 Sigma: valtype -> valtype -> valtype
 cross: valtype -> valtype -> valtype
 
@@ -34,4 +40,5 @@ letin: comp -> (value -> comp) -> comp
 proj: bool -> comp -> comp
 caseZ: value -> comp
 caseS: value -> (value -> comp) -> (value -> comp) -> comp
-caseP: value -> (value -> value -> comp) -> comp.
+caseP: value -> (value -> value -> comp) -> comp
+tock: comp.
