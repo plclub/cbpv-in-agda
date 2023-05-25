@@ -17,7 +17,18 @@ Inductive subeff : effect -> effect -> Prop :=
 | sub_refl phi : subeff phi phi
  
 .
-Hint Constructors subeff.
+#[export] Hint Constructors subeff : core.
+
+Lemma subeff_addright phi1 phi2 phi: subeff (add phi1 phi2) phi -> subeff phi2 phi.
+Admitted.
+
+
+Lemma subeff_trans phi1 phi2 phi3: subeff phi1 phi2 -> subeff phi2 phi3 -> subeff phi1 phi3.
+Admitted.
+
+#[export] Hint Resolve subeff_addright : core.
+#[export] Hint Resolve 1 subeff_trans : core.
+
 
 
 (** * Syntactic Typing Judement  *)
@@ -60,7 +71,8 @@ with computation_typing {m: nat} (Gamma: ctx m) : comp m -> comptype -> effect -
 | typeProj b c B1 B2 phi:
     Gamma ⊢ c : Pi B1 B2 # phi -> Gamma ⊢ proj b c : (if b then B1 else B2) # phi
 | typeForce v A phi1 phi2:
-    Gamma ⊩ v : U phi1 A -> subeff phi1 phi2 -> Gamma ⊢ v! : A # phi2
+    Gamma ⊩ v : U phi1 A 
+   -> subeff phi1 phi2 -> Gamma ⊢ v! : A # phi2
 | typeCaseZ v A phi : Gamma ⊩ v : zero -> Gamma ⊢ caseZ v : A # phi
 | typeCaseS v c1 c2 A1 A2 C phi:
     Gamma ⊩ v : Sigma A1 A2 ->
@@ -93,7 +105,7 @@ Scheme value_typing_ind_4 := Induction for value_typing Sort Prop
 Combined Scheme mutindt_value_computation_typing from
           value_typing_ind_4, computation_typing_ind_4.
 
-Hint Constructors computation_typing value_typing.
+#[export] Hint Constructors computation_typing value_typing : core.
 
 
 (** Type judgement inversion *)
@@ -124,7 +136,9 @@ Ltac invt :=
 Lemma typeVar' n (Gamma : ctx n) A i: Gamma i = A -> Gamma ⊩ var_value i : A.
 Proof. intros <-; constructor. Qed.
 
-Hint Resolve typeVar'.
+#[export] Hint Resolve typeVar' : core.
+
+
 
 
 (** ** Type Preservation under Substitution *)
@@ -162,15 +176,6 @@ Proof.
 Qed.
 
 
-Lemma subeff_addright phi1 phi2 phi: subeff (add phi1 phi2) phi -> subeff phi2 phi.
-Admitted.
-
-
-Lemma subeff_trans phi1 phi2 phi3: subeff phi1 phi2 -> subeff phi2 phi3 -> subeff phi1 phi3.
-Admitted.
-
-Hint Resolve subeff_addright.
-Hint Resolve 1 subeff_trans.
 
 Lemma type_subeff {n: nat} (Gamma: fin n -> valtype) c B phi: 
   Gamma ⊢ c : B # phi -> forall psi, subeff phi psi -> Gamma ⊢ c : B # psi.
@@ -178,46 +183,53 @@ Proof.
   induction 1; intros psi1 h. all: eauto.
 Qed.
 
-Hint Resolve type_subeff.
+#[export] Hint Resolve type_subeff : core.
+
+
+Ltac esimpl_all := autorewrite with core in *.
 
 (** Type preservation under primitive reduction  *)
-Lemma primitive_preservation {n} (c c': comp n) Gamma B phi:
-  c ≽ c' -> Gamma ⊢ c : B # phi -> inhab (Gamma ⊢ c' : B # phi).
+Lemma primitive_preservation {n} (c c': comp n) Gamma B phi phi':
+  c ≽ c' # phi -> (Gamma ⊢ c : B # add phi phi') -> inhab (Gamma ⊢ c' : B # phi').
 Proof.
   destruct 1; intros H1; repeat invt; try destruct b. 
   all: constructor; eauto using typepres_beta. 
+  esimpl_all.
   eapply comp_typepres_substitution; [eassumption |]; auto_case.
 Qed.
 
 
 (** Type preservation under reduction  *)
-Lemma preservation {n: nat} Gamma (c c': comp n) B phi:
-  c > c' -> Gamma ⊢ c : B # phi -> inhab (Gamma ⊢ c' : B # phi).
+Lemma preservation {n: nat} Gamma (c c': comp n) B phi phi':
+  (c ≻ c' # phi) -> Gamma ⊢ c : B # add phi phi' -> inhab (Gamma ⊢ c' : B # phi').
 Proof.
-  induction 1 in Gamma, B, phi |-*; [ now apply primitive_preservation | idtac.. ].
+  induction 1 in Gamma, B, phi' |-* ; [ now apply primitive_preservation | idtac.. ].
   all: intros; invt. 
-  all: destruct (IHstep _ _ _ X0). 
+Admitted.
+(*  all: destruct (IHstep _ _ _ X0). 
   all: econstructor; eauto.
-Qed.
+Qed. *)
 
-Lemma preservation_steps n (Gamma: ctx n)(c c': comp n) A phi:
-    Gamma ⊢ c : A # phi  -> c >* c' -> inhab (Gamma ⊢ c' : A # phi).
+Lemma preservation_steps n (Gamma: ctx n)(c c': comp n) A phi phi':
+    Gamma ⊢ c : A # add phi phi' -> c >* c' # phi -> inhab (Gamma ⊢ c' : A # phi').
 Proof.
   induction 2; eauto using preservation.
+Admitted.
+(*
   specialize (preservation H X) as [H1]; eauto.
-Qed.
+Qed. *)
 
 (** ** Progress *)
 Lemma progress (e: comp 0) (B: comptype) (phi : effect) :
-  null ⊢ e : B # phi -> (exists e', e > e') \/ nf e.
-Proof with (left; eexists; eauto).
+  null ⊢ e : B # phi -> (exists e', exists phi',  e ≻  e' # phi') \/ nf e.
+Proof with (left; eexists; eexists; eauto).
   enough (
       forall n Gamma e B phi, Gamma ⊢ e : B # phi->
       (match n return ctx n -> Prop with 0 => fun Gamma => Gamma = null | _ => fun  _ => False end) Gamma ->
-      (exists e', e > e') \/ nf e
+      (exists e', exists phi', e ≻ e' # phi') \/ nf e
     ) by eauto.
   induction 1; destruct m; intuition; subst Gamma.
-  1, 3, 5: destruct H1...
+  1, 3, 5: destruct H1 as [e' [phi' H1]]...
   1 - 3: inv H1; invt...
   5: idtac...
   all: inv v0; try (destruct i)...

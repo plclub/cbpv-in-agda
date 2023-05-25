@@ -15,27 +15,27 @@ Require Export CBPV.Semantics CBPV.Terms CBPV.SyntacticTyping CBPV.Base.
 (** * Semantic Typing *)
 
 (** ** Semantic Types *)
-Definition E' {n: nat} (C: comp n -> Prop) (c: comp n) := exists c', c ▷ c' /\ C c'.
+Definition E' {n: nat} (C: comp n -> Prop) (c: comp n) phi := exists c', c ▷ c' # phi /\ C c'.
 
 Fixpoint V {n: nat} (A: valtype) (v: value n) :=
   match A with
   | zero => False
   | one => v = u
-  | U phi B => exists c, v = <{ c }> /\ E' (C B) c
+  | U phi B => exists c, v = <{ c }> /\ E' (C B) c phi
   | Sigma A1 A2 => exists b v', v = inj b v' /\ V (if b then A1 else A2) v'
   | A1 * A2 => exists v1 v2, v = pair v1 v2 /\ V A1 v1 /\ V A2 v2
   end
 
 with C {n: nat} (B: comptype) (c: comp n) :=
   match B with
-  | cone => c = cu
-  | F A => exists v, c = ret v /\ V A v
-  | Pi B1 B2 => exists c1 c2, c = tuple c1 c2 /\ E' (C B1) c1 /\ E' (C B2) c2
-  | A → B => exists c', c = lambda c' /\ forall v, V A v -> E' (C B) (subst_comp (v..) c')
+  | cone => c = cu 
+  | F A => exists v, c = ret v /\ V A v 
+  | Pi B1 B2 => exists c1 c2 phi, c = tuple c1 c2 /\ E' (C B1) c1 phi /\ E' (C B2) c2 phi
+  | A → B => exists c' phi, c = lambda c' /\ forall v, V A v -> E' (C B) (subst_comp (v..) c') phi
   end.
 
 
-Notation E B c := (E' (C B) c).
+Notation E B c phi := (E' (C B) c phi).
 
 Definition G  {n m: nat} (Gamma : ctx n) (gamma: fin n -> value m) :=
  forall i A, Gamma i = A -> V A (gamma i).
@@ -46,7 +46,7 @@ Definition val_semtype {n: nat} (Gamma: ctx n) (v: value n) (A: valtype) :=
 Notation "Gamma ⊫ v : A" := (val_semtype Gamma v A) (at level 80, v at level 99).
 
 Definition comp_semtype {n: nat} (Gamma: ctx n) (c: comp n) (B: comptype) (phi : effect) :=
-  forall m (gamma: fin n -> value m), G Gamma gamma -> E B (subst_comp gamma c).
+  forall m (gamma: fin n -> value m), G Gamma gamma -> E B (subst_comp gamma c) phi.
 
 Notation "Gamma ⊨ c : B # phi" := (comp_semtype Gamma c B phi) (at level 80, c at level 99).
 
@@ -59,7 +59,7 @@ Proof.
 Qed.
 
 (** Computations in C[B] evaluate, explicitly C[B] ⊆ E[B] *)
-Lemma comp_evaluates {n: nat} (c: comp n) B: C B c -> E B c.
+Lemma comp_evaluates {n: nat} (c: comp n) B: C B c -> E B c pure.
 Proof.
   intros H; unfold E, E'; eexists c; split; [|assumption].
   apply eval_bigstep; split; [reflexivity|]; eapply comp_nf; eassumption.
