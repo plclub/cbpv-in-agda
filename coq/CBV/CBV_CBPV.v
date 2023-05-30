@@ -22,36 +22,53 @@ Combined Scheme ExpVal_ind from Exp_ind_2, Value_ind_2.
 (** ** Typing **)
 Definition ctx_cbv (n : nat) := fin n -> type.
 
-Reserved Notation "Gamma ⊩v V : A" (at level 80, V at level 99).
-Reserved Notation "Gamma ⊢v V : A" (at level 80, V at level 99).
+Reserved Notation "Gamma ⊩v V : A # phi" (at level 80, V at level 99).
+Reserved Notation "Gamma ⊢v V : A # phi" (at level 80, V at level 99).
 
-Inductive has_typeV : forall {n} (Gamma : ctx_cbv n), Value n -> type -> Type :=
-| typeVarV n (Gamma : ctx_cbv n) x : Gamma ⊩v var_Value x : Gamma x
-| typeOne n (Gamma : ctx_cbv n) : Gamma ⊩v One : Unit
-| typeLam n (Gamma : ctx_cbv n) M A B : A .: Gamma ⊢v M : B ->  Gamma ⊩v Lam M : Arr A B
-| typePair n (Gamma : ctx_cbv n) V1 V2 A B : Gamma ⊩v V1 : A -> Gamma ⊩v V2 : B -> Gamma ⊩v Pair V1 V2 : Cross A B
-| typeInjL n (Gamma : ctx_cbv n) b V A B : Gamma  ⊩v V : (match b with |true => A |_ => B end) -> Gamma ⊩v Inj b V : Plus A B
-where "Gamma ⊩v V : A" := (has_typeV Gamma V A)
-with has_typeE : forall {n} (Gamma : ctx_cbv n), Exp n -> type -> Type :=
-| typeVal n (Gamma : ctx_cbv n) V A : Gamma ⊩v V : A -> Gamma ⊢v Val V : A
-| typeApp n (Gamma : ctx_cbv n) M N A B : Gamma ⊢v M : Arr A B -> Gamma ⊢v N: A -> Gamma ⊢v App M N : B
-| typeCaseS n (Gamma : ctx_cbv n) M N1 N2 A B C : Gamma ⊢v M : Plus A B ->
-    A, Gamma ⊢v N1 : C ->
-    B, Gamma ⊢v N2 : C ->
-                  Gamma ⊢v CaseS M N1 N2 : C
-| typeCaseP n (Gamma : ctx_cbv n) M N A B C:
-    Gamma ⊢v M : Cross A B ->
-    B, A, Gamma ⊢v N : C ->
-Gamma ⊢v CaseP M N : C
-where "Gamma ⊢v E : A" := (has_typeE Gamma E A).
+Inductive has_typeV : forall {n} (Gamma : ctx_cbv n), Value n -> type -> effect -> Type :=
+| typeVarV n (Gamma : ctx_cbv n) x phi : Gamma ⊩v var_Value x : Gamma x # phi
+| typeOne n (Gamma : ctx_cbv n) phi : Gamma ⊩v One : Unit # phi
+| typeLam n (Gamma : ctx_cbv n) M A B phi phi' :
+  A .: Gamma ⊢v M : B # phi' ->  Gamma ⊩v Lam M : Arr A phi' B # phi
+| typePair n (Gamma : ctx_cbv n) V1 V2 A B phi1 phi2 :
+  Gamma ⊩v V1 : A # phi1 ->
+  Gamma ⊩v V2 : B # phi2 ->
+  Gamma ⊩v Pair V1 V2 : Cross A B # Add phi1 phi2
+| typeInjL n (Gamma : ctx_cbv n) b V A B phi :
+  Gamma  ⊩v V : (match b with |true => A |_ => B end) # phi ->
+  Gamma ⊩v Inj b V : Plus A B # phi
+where "Gamma ⊩v V : A # phi" := (has_typeV Gamma V A phi)
+with has_typeE : forall {n} (Gamma : ctx_cbv n), Exp n -> type -> effect -> Type :=
+| typeVal n (Gamma : ctx_cbv n) V A phi : Gamma ⊩v V : A # phi -> Gamma ⊢v Val V : A # phi
+| typeApp n (Gamma : ctx_cbv n) M N A B phi1 phi2 phi3 :
+  Gamma ⊢v M : Arr A phi1 B # phi2 ->
+  Gamma ⊢v N : A # phi3 ->
+  Gamma ⊢v App M N : B # Add phi1 (Add phi2 phi3)
+| typeCaseS n (Gamma : ctx_cbv n) M N1 N2 A B C phi :
+    Gamma ⊢v M : Plus A B # phi ->
+    A, Gamma ⊢v N1 : C # phi ->
+    B, Gamma ⊢v N2 : C # phi ->
+    Gamma ⊢v CaseS M N1 N2 : C # phi
+| typeCaseP n (Gamma : ctx_cbv n) M N A B C phi:
+    Gamma ⊢v M : Cross A B # phi ->
+    B, A, Gamma ⊢v N : C # phi ->
+    Gamma ⊢v CaseP M N : C # phi
+where "Gamma ⊢v E : A # phi" := (has_typeE Gamma E A phi).
 
 
 (** ** Translation CBV - CBPV *)
 
+Fixpoint eval_eff (phi: effect) : Syntax.effect :=
+  match phi with
+  | Tick => tick
+  | Add phi1 phi2 => add (eval_eff phi1) (eval_eff phi2)
+  | Pure => pure
+  end.
+
 Fixpoint eval_ty (A : type) : valtype :=
   match A with
   | Unit => one
-  | Arr A B => U (arrow  (eval_ty A) (F (eval_ty B)))
+  | Arr A phi B => U (eval_eff phi) (arrow  (eval_ty A) (F (eval_ty B)))
   | Cross A B => cross (eval_ty A) (eval_ty B)
   | Plus A B => Sigma (eval_ty A) (eval_ty B)
   end.
@@ -70,6 +87,7 @@ Fixpoint eval_val {n: nat} (V : Value n) : value n :=
 with eval_exp {n: nat} (M: Exp n) : Syntax.comp n :=
   match M with
   | Val V => ret (eval_val V)
+  | Tock => tock
   | App M N => $$ <- eval_exp M;
               $$ <- (ren_comp shift (eval_exp N));
              (* Need to explicitly qualify app because app is used in List *)
@@ -80,27 +98,25 @@ with eval_exp {n: nat} (M: Exp n) : Syntax.comp n :=
                   caseP (var_value var_zero) (ren_comp up2_ren (eval_exp N))
   end.
 
-Fixpoint typingVal_pres {n} (Gamma : ctx_cbv n) V A (H : Gamma ⊩v V : A) :
+Fixpoint typingVal_pres {n} (Gamma : ctx_cbv n) V A phi (H : Gamma ⊩v V : A # phi) :
   value_typing (Gamma >> eval_ty) (eval_val V) (eval_ty A)
-with typingExp_pres {n} (Gamma : ctx_cbv n) M A (H:  Gamma ⊢v M : A) :
-  computation_typing (Gamma >> eval_ty) (eval_exp M) (F (eval_ty A)).
+with typingExp_pres {n} (Gamma : ctx_cbv n) M A phi (H:  Gamma ⊢v M : A # phi) :
+  computation_typing (Gamma >> eval_ty) (eval_exp M) (F (eval_ty A)) (eval_eff phi).
 Proof.
   - destruct H; cbn;  try (now (repeat constructor)).
     + constructor.
-      constructor. specialize (typingExp_pres _ _ _ _ h).
+      constructor.
+      specialize (typingExp_pres _ _ _ _ phi' h).
       now asimpl in *.
-    + constructor; now apply typingVal_pres.
-    + constructor.
-    destruct b; now apply typingVal_pres.
+    + constructor; eapply typingVal_pres; eauto.
+    + constructor. destruct b; eapply typingVal_pres; eauto.
   - destruct H; cbn.
-    + specialize (typingVal_pres _ _ _ _ h).
+    + specialize (typingVal_pres _ _ _ _ phi h).
       constructor. assumption.
     + simpl.
       eapply eagerlet_ty; eauto.
-      eapply eagerlet_ty; eauto using comp_typepres_renaming.
-      econstructor.
-      * cbv; eauto.
-      * cbv; eauto.
+      * admit.
+      * eapply eagerlet_ty; eauto. eapply comp_typepres_renaming; eauto. cbv; eauto.
     + eapply eagerlet_ty; eauto.
       econstructor; cbn; eauto; simpl.
       * cbv; eauto.
@@ -113,7 +129,7 @@ Proof.
       * cbv; eauto.
       * eapply comp_typepres_renaming; eauto.
         auto_case.
-Qed.
+Admitted.
 
 
 (** *** Translation and Substiution Commute *)

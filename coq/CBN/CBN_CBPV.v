@@ -8,7 +8,7 @@ Tactic Notation "asimpl" "in" hyp(J) := revert J; asimpl; intros J.
 
 
 Lemma computation_typing_ext n Gamma Gamma' (C : comp n) A :
-  Gamma ⊢ C : A -> Gamma = Gamma' -> Gamma' ⊢ C : A.
+  Gamma ⊢ C : A # pure -> Gamma = Gamma' -> Gamma' ⊢ C : A # pure.
 Proof.
   now intros ? ->.
 Qed.
@@ -72,9 +72,9 @@ Qed.
 Fixpoint eval_ty (A : type) : comptype :=
   match A with
   | Unit => F (one)
-  | Arr A B => arrow (U (eval_ty A)) (eval_ty B)
+  | Arr A B => arrow (U pure (eval_ty A)) (eval_ty B)
   | Cross A B => Pi (eval_ty A) (eval_ty B)
-  | Plus A B => F (Sigma (U (eval_ty A)) (U (eval_ty B)))
+  | Plus A B => F (Sigma (U pure (eval_ty A)) (U pure (eval_ty B)))
   end.
 
 Notation ren_up := ((var_zero .: (shift >> shift))).
@@ -97,20 +97,21 @@ where "s ↦n C" := (@trans _ s C).
 Hint Constructors trans.
 Remove Hints trans_FT.
 
-Definition eval_ctx {n} (Gamma : cbn_ctx n) := Gamma >> eval_ty >> U.
+Definition eval_ctx {n} (Gamma : cbn_ctx n) := Gamma >> eval_ty >> U pure.
 
 Lemma eval_ctx_cons {n : nat} (Gamma: cbn_ctx n) (A: type) :
-  eval_ctx (A, Gamma) = U (eval_ty A), eval_ctx Gamma.
+  eval_ctx (A, Gamma) = U pure (eval_ty A), eval_ctx Gamma.
 Proof.
   fext; intros []; unfold eval_ctx, funcomp; cbn; reflexivity.
 Qed.
 
 Lemma trans_preserves {n : nat} (s : exp n) A Gamma M :
-  s ↦n M -> Gamma ⊢n s : A -> eval_ctx Gamma ⊢ M : eval_ty A.
+  s ↦n M -> Gamma ⊢n s : A -> eval_ctx Gamma ⊢ M : eval_ty A # pure.
 Proof.
   intros H. revert A; induction H; intros; cbn in *; [(inv X) .. |]; eauto.
+  - repeat econstructor. eauto.
   - repeat econstructor.
-  - simpl. econstructor. rewrite <- eval_ctx_cons. eauto.
+  - simpl. econstructor. eauto. rewrite <- eval_ctx_cons. eauto.
   - econstructor; eauto. eapply  (IHtrans1 Gamma (Arr A0 A)); eauto.
   -  econstructor; eauto.
   - replace (eval_ty (if b then B1 else B2)) with (if b then eval_ty B1 else eval_ty B2) by (now destruct b).
@@ -175,7 +176,7 @@ Qed.
 (** *** Translation is well-behaved *)
 
 Lemma cbn_type_pres {n : nat} (s : exp n) A Gamma :
-  Gamma ⊢n s : A -> eval_ctx Gamma ⊢ eval s : eval_ty A.
+  Gamma ⊢n s : A -> eval_ctx Gamma ⊢ eval s : eval_ty A # pure.
 Proof.
   intros. eapply trans_preserves; eauto. eapply trans_eval.
 Qed.

@@ -2,17 +2,34 @@ Require Export fintype.
 
 
 
+Section effect.
+Inductive effect  : Type :=
+  | Tick : effect 
+  | Add : effect   -> effect   -> effect 
+  | Pure : effect .
+
+Lemma congr_Tick  : Tick  = Tick  .
+Proof. congruence. Qed.
+
+Lemma congr_Add  { s0 : effect   } { s1 : effect   } { t0 : effect   } { t1 : effect   } (H1 : s0 = t0) (H2 : s1 = t1) : Add s0 s1 = Add t0 t1 .
+Proof. congruence. Qed.
+
+Lemma congr_Pure  : Pure  = Pure  .
+Proof. congruence. Qed.
+
+End effect.
+
 Section type.
 Inductive type  : Type :=
   | Unit : type 
-  | Arr : type   -> type   -> type 
+  | Arr : type   -> effect   -> type   -> type 
   | Cross : type   -> type   -> type 
   | Plus : type   -> type   -> type .
 
 Lemma congr_Unit  : Unit  = Unit  .
 Proof. congruence. Qed.
 
-Lemma congr_Arr  { s0 : type   } { s1 : type   } { t0 : type   } { t1 : type   } (H1 : s0 = t0) (H2 : s1 = t1) : Arr s0 s1 = Arr t0 t1 .
+Lemma congr_Arr  { s0 : type   } { s1 : effect   } { s2 : type   } { t0 : type   } { t1 : effect   } { t2 : type   } (H1 : s0 = t0) (H2 : s1 = t1) (H3 : s2 = t2) : Arr s0 s1 s2 = Arr t0 t1 t2 .
 Proof. congruence. Qed.
 
 Lemma congr_Cross  { s0 : type   } { s1 : type   } { t0 : type   } { t1 : type   } (H1 : s0 = t0) (H2 : s1 = t1) : Cross s0 s1 = Cross t0 t1 .
@@ -32,6 +49,7 @@ Inductive Value (nValue : nat) : Type :=
   | Pair : Value  (nValue) -> Value  (nValue) -> Value (nValue)
   | Inj : bool   -> Value  (nValue) -> Value (nValue)
  with Exp (nValue : nat) : Type :=
+  | Tock : Exp (nValue)
   | Val : Value  (nValue) -> Exp (nValue)
   | App : Exp  (nValue) -> Exp  (nValue) -> Exp (nValue)
   | CaseS : Exp  (nValue) -> Exp  ((S) nValue) -> Exp  ((S) nValue) -> Exp (nValue)
@@ -47,6 +65,9 @@ Lemma congr_Pair { mValue : nat } { s0 : Value  (mValue) } { s1 : Value  (mValue
 Proof. congruence. Qed.
 
 Lemma congr_Inj { mValue : nat } { s0 : bool   } { s1 : Value  (mValue) } { t0 : bool   } { t1 : Value  (mValue) } (H1 : s0 = t0) (H2 : s1 = t1) : Inj (mValue) s0 s1 = Inj (mValue) t0 t1 .
+Proof. congruence. Qed.
+
+Lemma congr_Tock { mValue : nat } : Tock (mValue) = Tock (mValue) .
 Proof. congruence. Qed.
 
 Lemma congr_Val { mValue : nat } { s0 : Value  (mValue) } { t0 : Value  (mValue) } (H1 : s0 = t0) : Val (mValue) s0 = Val (mValue) t0 .
@@ -74,6 +95,7 @@ Fixpoint ren_Value { mValue : nat } { nValue : nat } (xiValue : (fin) (mValue) -
     end
  with ren_Exp { mValue : nat } { nValue : nat } (xiValue : (fin) (mValue) -> (fin) (nValue)) (s : Exp (mValue)) : Exp (nValue) :=
     match s return Exp (nValue) with
+    | Tock (_)  => Tock (nValue)
     | Val (_) s0 => Val (nValue) ((ren_Value xiValue) s0)
     | App (_) s0 s1 => App (nValue) ((ren_Exp xiValue) s0) ((ren_Exp xiValue) s1)
     | CaseS (_) s0 s1 s2 => CaseS (nValue) ((ren_Exp xiValue) s0) ((ren_Exp (upRen_Value_Value xiValue)) s1) ((ren_Exp (upRen_Value_Value xiValue)) s2)
@@ -93,6 +115,7 @@ Fixpoint subst_Value { mValue : nat } { nValue : nat } (sigmaValue : (fin) (mVal
     end
  with subst_Exp { mValue : nat } { nValue : nat } (sigmaValue : (fin) (mValue) -> Value (nValue)) (s : Exp (mValue)) : Exp (nValue) :=
     match s return Exp (nValue) with
+    | Tock (_)  => Tock (nValue)
     | Val (_) s0 => Val (nValue) ((subst_Value sigmaValue) s0)
     | App (_) s0 s1 => App (nValue) ((subst_Exp sigmaValue) s0) ((subst_Exp sigmaValue) s1)
     | CaseS (_) s0 s1 s2 => CaseS (nValue) ((subst_Exp sigmaValue) s0) ((subst_Exp (up_Value_Value sigmaValue)) s1) ((subst_Exp (up_Value_Value sigmaValue)) s2)
@@ -115,6 +138,7 @@ Fixpoint idSubst_Value { mValue : nat } (sigmaValue : (fin) (mValue) -> Value (m
     end
  with idSubst_Exp { mValue : nat } (sigmaValue : (fin) (mValue) -> Value (mValue)) (EqValue : forall x, sigmaValue x = (var_Value (mValue)) x) (s : Exp (mValue)) : subst_Exp sigmaValue s = s :=
     match s return subst_Exp sigmaValue s = s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((idSubst_Value sigmaValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((idSubst_Exp sigmaValue EqValue) s0) ((idSubst_Exp sigmaValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((idSubst_Exp sigmaValue EqValue) s0) ((idSubst_Exp (up_Value_Value sigmaValue) (upId_Value_Value (_) EqValue)) s1) ((idSubst_Exp (up_Value_Value sigmaValue) (upId_Value_Value (_) EqValue)) s2)
@@ -137,6 +161,7 @@ Fixpoint extRen_Value { mValue : nat } { nValue : nat } (xiValue : (fin) (mValue
     end
  with extRen_Exp { mValue : nat } { nValue : nat } (xiValue : (fin) (mValue) -> (fin) (nValue)) (zetaValue : (fin) (mValue) -> (fin) (nValue)) (EqValue : forall x, xiValue x = zetaValue x) (s : Exp (mValue)) : ren_Exp xiValue s = ren_Exp zetaValue s :=
     match s return ren_Exp xiValue s = ren_Exp zetaValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((extRen_Value xiValue zetaValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((extRen_Exp xiValue zetaValue EqValue) s0) ((extRen_Exp xiValue zetaValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((extRen_Exp xiValue zetaValue EqValue) s0) ((extRen_Exp (upRen_Value_Value xiValue) (upRen_Value_Value zetaValue) (upExtRen_Value_Value (_) (_) EqValue)) s1) ((extRen_Exp (upRen_Value_Value xiValue) (upRen_Value_Value zetaValue) (upExtRen_Value_Value (_) (_) EqValue)) s2)
@@ -159,6 +184,7 @@ Fixpoint ext_Value { mValue : nat } { nValue : nat } (sigmaValue : (fin) (mValue
     end
  with ext_Exp { mValue : nat } { nValue : nat } (sigmaValue : (fin) (mValue) -> Value (nValue)) (tauValue : (fin) (mValue) -> Value (nValue)) (EqValue : forall x, sigmaValue x = tauValue x) (s : Exp (mValue)) : subst_Exp sigmaValue s = subst_Exp tauValue s :=
     match s return subst_Exp sigmaValue s = subst_Exp tauValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((ext_Value sigmaValue tauValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((ext_Exp sigmaValue tauValue EqValue) s0) ((ext_Exp sigmaValue tauValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((ext_Exp sigmaValue tauValue EqValue) s0) ((ext_Exp (up_Value_Value sigmaValue) (up_Value_Value tauValue) (upExt_Value_Value (_) (_) EqValue)) s1) ((ext_Exp (up_Value_Value sigmaValue) (up_Value_Value tauValue) (upExt_Value_Value (_) (_) EqValue)) s2)
@@ -178,6 +204,7 @@ Fixpoint compRenRen_Value { kValue : nat } { lValue : nat } { mValue : nat } (xi
     end
  with compRenRen_Exp { kValue : nat } { lValue : nat } { mValue : nat } (xiValue : (fin) (mValue) -> (fin) (kValue)) (zetaValue : (fin) (kValue) -> (fin) (lValue)) (rhoValue : (fin) (mValue) -> (fin) (lValue)) (EqValue : forall x, ((funcomp) zetaValue xiValue) x = rhoValue x) (s : Exp (mValue)) : ren_Exp zetaValue (ren_Exp xiValue s) = ren_Exp rhoValue s :=
     match s return ren_Exp zetaValue (ren_Exp xiValue s) = ren_Exp rhoValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((compRenRen_Value xiValue zetaValue rhoValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((compRenRen_Exp xiValue zetaValue rhoValue EqValue) s0) ((compRenRen_Exp xiValue zetaValue rhoValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((compRenRen_Exp xiValue zetaValue rhoValue EqValue) s0) ((compRenRen_Exp (upRen_Value_Value xiValue) (upRen_Value_Value zetaValue) (upRen_Value_Value rhoValue) (up_ren_ren (_) (_) (_) EqValue)) s1) ((compRenRen_Exp (upRen_Value_Value xiValue) (upRen_Value_Value zetaValue) (upRen_Value_Value rhoValue) (up_ren_ren (_) (_) (_) EqValue)) s2)
@@ -200,6 +227,7 @@ Fixpoint compRenSubst_Value { kValue : nat } { lValue : nat } { mValue : nat } (
     end
  with compRenSubst_Exp { kValue : nat } { lValue : nat } { mValue : nat } (xiValue : (fin) (mValue) -> (fin) (kValue)) (tauValue : (fin) (kValue) -> Value (lValue)) (thetaValue : (fin) (mValue) -> Value (lValue)) (EqValue : forall x, ((funcomp) tauValue xiValue) x = thetaValue x) (s : Exp (mValue)) : subst_Exp tauValue (ren_Exp xiValue s) = subst_Exp thetaValue s :=
     match s return subst_Exp tauValue (ren_Exp xiValue s) = subst_Exp thetaValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((compRenSubst_Value xiValue tauValue thetaValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((compRenSubst_Exp xiValue tauValue thetaValue EqValue) s0) ((compRenSubst_Exp xiValue tauValue thetaValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((compRenSubst_Exp xiValue tauValue thetaValue EqValue) s0) ((compRenSubst_Exp (upRen_Value_Value xiValue) (up_Value_Value tauValue) (up_Value_Value thetaValue) (up_ren_subst_Value_Value (_) (_) (_) EqValue)) s1) ((compRenSubst_Exp (upRen_Value_Value xiValue) (up_Value_Value tauValue) (up_Value_Value thetaValue) (up_ren_subst_Value_Value (_) (_) (_) EqValue)) s2)
@@ -222,6 +250,7 @@ Fixpoint compSubstRen_Value { kValue : nat } { lValue : nat } { mValue : nat } (
     end
  with compSubstRen_Exp { kValue : nat } { lValue : nat } { mValue : nat } (sigmaValue : (fin) (mValue) -> Value (kValue)) (zetaValue : (fin) (kValue) -> (fin) (lValue)) (thetaValue : (fin) (mValue) -> Value (lValue)) (EqValue : forall x, ((funcomp) (ren_Value zetaValue) sigmaValue) x = thetaValue x) (s : Exp (mValue)) : ren_Exp zetaValue (subst_Exp sigmaValue s) = subst_Exp thetaValue s :=
     match s return ren_Exp zetaValue (subst_Exp sigmaValue s) = subst_Exp thetaValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((compSubstRen_Value sigmaValue zetaValue thetaValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((compSubstRen_Exp sigmaValue zetaValue thetaValue EqValue) s0) ((compSubstRen_Exp sigmaValue zetaValue thetaValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((compSubstRen_Exp sigmaValue zetaValue thetaValue EqValue) s0) ((compSubstRen_Exp (up_Value_Value sigmaValue) (upRen_Value_Value zetaValue) (up_Value_Value thetaValue) (up_subst_ren_Value_Value (_) (_) (_) EqValue)) s1) ((compSubstRen_Exp (up_Value_Value sigmaValue) (upRen_Value_Value zetaValue) (up_Value_Value thetaValue) (up_subst_ren_Value_Value (_) (_) (_) EqValue)) s2)
@@ -244,6 +273,7 @@ Fixpoint compSubstSubst_Value { kValue : nat } { lValue : nat } { mValue : nat }
     end
  with compSubstSubst_Exp { kValue : nat } { lValue : nat } { mValue : nat } (sigmaValue : (fin) (mValue) -> Value (kValue)) (tauValue : (fin) (kValue) -> Value (lValue)) (thetaValue : (fin) (mValue) -> Value (lValue)) (EqValue : forall x, ((funcomp) (subst_Value tauValue) sigmaValue) x = thetaValue x) (s : Exp (mValue)) : subst_Exp tauValue (subst_Exp sigmaValue s) = subst_Exp thetaValue s :=
     match s return subst_Exp tauValue (subst_Exp sigmaValue s) = subst_Exp thetaValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((compSubstSubst_Value sigmaValue tauValue thetaValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((compSubstSubst_Exp sigmaValue tauValue thetaValue EqValue) s0) ((compSubstSubst_Exp sigmaValue tauValue thetaValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((compSubstSubst_Exp sigmaValue tauValue thetaValue EqValue) s0) ((compSubstSubst_Exp (up_Value_Value sigmaValue) (up_Value_Value tauValue) (up_Value_Value thetaValue) (up_subst_subst_Value_Value (_) (_) (_) EqValue)) s1) ((compSubstSubst_Exp (up_Value_Value sigmaValue) (up_Value_Value tauValue) (up_Value_Value thetaValue) (up_subst_subst_Value_Value (_) (_) (_) EqValue)) s2)
@@ -266,6 +296,7 @@ Fixpoint rinst_inst_Value { mValue : nat } { nValue : nat } (xiValue : (fin) (mV
     end
  with rinst_inst_Exp { mValue : nat } { nValue : nat } (xiValue : (fin) (mValue) -> (fin) (nValue)) (sigmaValue : (fin) (mValue) -> Value (nValue)) (EqValue : forall x, ((funcomp) (var_Value (nValue)) xiValue) x = sigmaValue x) (s : Exp (mValue)) : ren_Exp xiValue s = subst_Exp sigmaValue s :=
     match s return ren_Exp xiValue s = subst_Exp sigmaValue s with
+    | Tock (_)  => congr_Tock 
     | Val (_) s0 => congr_Val ((rinst_inst_Value xiValue sigmaValue EqValue) s0)
     | App (_) s0 s1 => congr_App ((rinst_inst_Exp xiValue sigmaValue EqValue) s0) ((rinst_inst_Exp xiValue sigmaValue EqValue) s1)
     | CaseS (_) s0 s1 s2 => congr_CaseS ((rinst_inst_Exp xiValue sigmaValue EqValue) s0) ((rinst_inst_Exp (upRen_Value_Value xiValue) (up_Value_Value sigmaValue) (rinstInst_up_Value_Value (_) (_) EqValue)) s1) ((rinst_inst_Exp (upRen_Value_Value xiValue) (up_Value_Value sigmaValue) (rinstInst_up_Value_Value (_) (_) EqValue)) s2)
@@ -355,6 +386,8 @@ Arguments Lam {nValue}.
 Arguments Pair {nValue}.
 
 Arguments Inj {nValue}.
+
+Arguments Tock {nValue}.
 
 Arguments Val {nValue}.
 
