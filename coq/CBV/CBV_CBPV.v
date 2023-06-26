@@ -1,5 +1,6 @@
 Require Export Eagerlet.
 Require Export CBV.
+Require Export CBVTypes.
 Import CommaNotation.
 
 Ltac asimpl := repeat (progress (CBV.asimpl; Syntax.asimpl)).
@@ -33,7 +34,7 @@ Inductive has_typeV : forall {n} (Gamma : ctx_cbv n), Value n -> type -> effect 
 | typePair n (Gamma : ctx_cbv n) V1 V2 A B phi1 phi2 :
   Gamma ⊩v V1 : A # phi1 ->
   Gamma ⊩v V2 : B # phi2 ->
-  Gamma ⊩v Pair V1 V2 : Cross A B # Add phi1 phi2
+  Gamma ⊩v Pair V1 V2 : Cross A B # add phi1 phi2
 | typeInjL n (Gamma : ctx_cbv n) b V A B phi :
   Gamma  ⊩v V : (match b with |true => A |_ => B end) # phi ->
   Gamma ⊩v Inj b V : Plus A B # phi
@@ -43,7 +44,7 @@ with has_typeE : forall {n} (Gamma : ctx_cbv n), Exp n -> type -> effect -> Type
 | typeApp n (Gamma : ctx_cbv n) M N A B phi1 phi2 phi3 :
   Gamma ⊢v M : Arr A phi1 B # phi2 ->
   Gamma ⊢v N : A # phi3 ->
-  Gamma ⊢v App M N : B # Add phi1 (Add phi2 phi3)
+  Gamma ⊢v App M N : B # add phi1 (add phi2 phi3)
 | typeCaseS n (Gamma : ctx_cbv n) M N1 N2 A B C phi :
     Gamma ⊢v M : Plus A B # phi ->
     A, Gamma ⊢v N1 : C # phi ->
@@ -58,17 +59,10 @@ where "Gamma ⊢v E : A # phi" := (has_typeE Gamma E A phi).
 
 (** ** Translation CBV - CBPV *)
 
-Fixpoint eval_eff (phi: effect) : Syntax.effect :=
-  match phi with
-  | Tick => tick
-  | Add phi1 phi2 => add (eval_eff phi1) (eval_eff phi2)
-  | Pure => pure
-  end.
-
 Fixpoint eval_ty (A : type) : valtype :=
   match A with
   | Unit => one
-  | Arr A phi B => U (eval_eff phi) (arrow  (eval_ty A) (F (eval_ty B)))
+  | Arr A phi B => U phi (arrow  (eval_ty A) (F (eval_ty B)))
   | Cross A B => cross (eval_ty A) (eval_ty B)
   | Plus A B => Sigma (eval_ty A) (eval_ty B)
   end.
@@ -101,7 +95,7 @@ with eval_exp {n: nat} (M: Exp n) : Syntax.comp n :=
 Fixpoint typingVal_pres {n} (Gamma : ctx_cbv n) V A phi (H : Gamma ⊩v V : A # phi) :
   value_typing (Gamma >> eval_ty) (eval_val V) (eval_ty A)
 with typingExp_pres {n} (Gamma : ctx_cbv n) M A phi (H:  Gamma ⊢v M : A # phi) :
-  computation_typing (Gamma >> eval_ty) (eval_exp M) (F (eval_ty A)) (eval_eff phi).
+  computation_typing (Gamma >> eval_ty) (eval_exp M) (F (eval_ty A)) phi.
 Proof.
   - destruct H; cbn;  try (now (repeat constructor)).
     + constructor.
@@ -113,10 +107,12 @@ Proof.
   - destruct H; cbn.
     + specialize (typingVal_pres _ _ _ _ phi h).
       constructor. assumption.
-    + simpl.
-      eapply eagerlet_ty; eauto.
+    + eapply eagerlet_ty; eauto. eapply eagerlet_ty; eauto.
+      * eapply comp_typepres_renaming.
+        -- admit.
+        -- cbv; eauto. admit.
       * admit.
-      * eapply eagerlet_ty; eauto. eapply comp_typepres_renaming; eauto. cbv; eauto.
+      * admit.
     + eapply eagerlet_ty; eauto.
       econstructor; cbn; eauto; simpl.
       * cbv; eauto.
@@ -124,13 +120,14 @@ Proof.
         auto_case.
       *  eapply comp_typepres_renaming; eauto.
         auto_case.
+      * admit.
     + eapply eagerlet_ty; eauto.
       econstructor; eauto.
       * cbv; eauto.
       * eapply comp_typepres_renaming; eauto.
         auto_case.
+      * admit.
 Admitted.
-
 
 (** *** Translation and Substiution Commute *)
 

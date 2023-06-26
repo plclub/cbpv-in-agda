@@ -2,65 +2,6 @@ Require Export fintype.
 
 
 
-Section effect.
-Inductive effect  : Type :=
-  | tick : effect 
-  | add : effect   -> effect   -> effect 
-  | pure : effect .
-
-Lemma congr_tick  : tick  = tick  .
-Proof. congruence. Qed.
-
-Lemma congr_add  { s0 : effect   } { s1 : effect   } { t0 : effect   } { t1 : effect   } (H1 : s0 = t0) (H2 : s1 = t1) : add s0 s1 = add t0 t1 .
-Proof. congruence. Qed.
-
-Lemma congr_pure  : pure  = pure  .
-Proof. congruence. Qed.
-
-End effect.
-
-Section valtypecomptype.
-Inductive valtype  : Type :=
-  | zero : valtype 
-  | one : valtype 
-  | U : effect   -> comptype   -> valtype 
-  | Sigma : valtype   -> valtype   -> valtype 
-  | cross : valtype   -> valtype   -> valtype 
- with comptype  : Type :=
-  | cone : comptype 
-  | F : valtype   -> comptype 
-  | Pi : comptype   -> comptype   -> comptype 
-  | arrow : valtype   -> comptype   -> comptype .
-
-Lemma congr_zero  : zero  = zero  .
-Proof. congruence. Qed.
-
-Lemma congr_one  : one  = one  .
-Proof. congruence. Qed.
-
-Lemma congr_U  { s0 : effect   } { s1 : comptype   } { t0 : effect   } { t1 : comptype   } (H1 : s0 = t0) (H2 : s1 = t1) : U s0 s1 = U t0 t1 .
-Proof. congruence. Qed.
-
-Lemma congr_Sigma  { s0 : valtype   } { s1 : valtype   } { t0 : valtype   } { t1 : valtype   } (H1 : s0 = t0) (H2 : s1 = t1) : Sigma s0 s1 = Sigma t0 t1 .
-Proof. congruence. Qed.
-
-Lemma congr_cross  { s0 : valtype   } { s1 : valtype   } { t0 : valtype   } { t1 : valtype   } (H1 : s0 = t0) (H2 : s1 = t1) : cross s0 s1 = cross t0 t1 .
-Proof. congruence. Qed.
-
-Lemma congr_cone  : cone  = cone  .
-Proof. congruence. Qed.
-
-Lemma congr_F  { s0 : valtype   } { t0 : valtype   } (H1 : s0 = t0) : F s0 = F t0 .
-Proof. congruence. Qed.
-
-Lemma congr_Pi  { s0 : comptype   } { s1 : comptype   } { t0 : comptype   } { t1 : comptype   } (H1 : s0 = t0) (H2 : s1 = t1) : Pi s0 s1 = Pi t0 t1 .
-Proof. congruence. Qed.
-
-Lemma congr_arrow  { s0 : valtype   } { s1 : comptype   } { t0 : valtype   } { t1 : comptype   } (H1 : s0 = t0) (H2 : s1 = t1) : arrow s0 s1 = arrow t0 t1 .
-Proof. congruence. Qed.
-
-End valtypecomptype.
-
 
 Section valuecomp.
 Inductive value (nvalue : nat) : Type :=

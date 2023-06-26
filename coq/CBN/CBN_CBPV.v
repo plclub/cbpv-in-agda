@@ -122,6 +122,7 @@ Proof.
     + cbv; eauto.
     + fold eval_ty. eapply comp_typepres_renaming; eauto. now intros [].
     + fold eval_ty. eapply comp_typepres_renaming; eauto. now intros [].
+    + autorewrite with core. eauto.
 Qed.
 
 Ltac prv_eq := intros; asimpl; f_equal; fext; now intros [].

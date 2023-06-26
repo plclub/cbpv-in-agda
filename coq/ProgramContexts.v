@@ -313,13 +313,13 @@ Qed.
 (** ** Typing Soundness - Context Filling *)
 (** Whenever we have a typed context and a correspondingly typed term,
     the result after inserting the term is well typed *)
-Fixpoint vctx_value_typing_soundness m  Gamma n Delta (C: vctx true m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A') (phi : effect):
+Fixpoint vctx_value_typing_soundness m  Gamma n Delta (phi: effect) (C: vctx true m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A'):
   forall v, Delta ⊩ v : A' -> (Gamma ⊩ fillv C v : A)
-with vctx_comp_typing_soundness m  Gamma n Delta (C: vctx false m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A') phi :
+with vctx_comp_typing_soundness m  Gamma n Delta phi (C: vctx false m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A'):
   forall c, Delta ⊢ c : A' # phi -> (Gamma ⊩ fillv C c : A)
-with cctx_value_typing_soundness m Gamma n Delta (C: cctx true m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A') phi:
+with cctx_value_typing_soundness m Gamma n Delta phi (C: cctx true m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A'):
   forall v, Delta ⊩ v : A' -> (Gamma ⊢ fillc C v : B # phi)
-with cctx_comp_typing_soundness m Gamma n Delta (C: cctx false m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A') phi:
+with cctx_comp_typing_soundness m Gamma n Delta phi (C: cctx false m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A'):
   forall c, Delta ⊢ c : A' # phi -> (Gamma ⊢ fillc C c : B # phi).
 Proof.
   all: destruct H; intros; cbn; eauto; intuition.
@@ -330,16 +330,16 @@ Admitted.
  *)
 
 
-Fixpoint context_typing_decomposition_vctx_value {m n: nat} (Gamma: ctx m) (C: vctx true m n) (v: value n) A (phi : effect) :
+Fixpoint context_typing_decomposition_vctx_value {m n: nat} (Gamma: ctx m) (phi: effect) (C: vctx true m n) (v: value n) A:
   Gamma ⊩ fillv C v : A -> { Delta & { A' & (Gamma [[Delta]] ⊩ C : A; A') * (Delta ⊩ v : A') } }%type
 
-with context_typing_decomposition_vctx_comp {m n: nat} (Gamma: ctx m) (C: vctx false m n) (c: comp n) A phi :
+with context_typing_decomposition_vctx_comp {m n: nat} (Gamma: ctx m) phi (C: vctx false m n) (c: comp n) A:
   Gamma ⊩ fillv C c : A -> { Delta & { A' & (Gamma [[Delta]] ⊩ C : A; A') * (Delta ⊢ c : A' # phi) } }%type
 
-with  context_typing_decomposition_cctx_value {m n: nat} (Gamma: ctx m) (C: cctx true m n) (v: value n) B phi :
+with  context_typing_decomposition_cctx_value {m n: nat} (Gamma: ctx m) phi (C: cctx true m n) (v: value n) B:
   Gamma ⊢ fillc C v : B # phi -> { Delta & { A' & (Gamma [[Delta]] ⊢ C : B; A') * (Delta ⊩ v : A') } }%type
 
-with  context_typing_decomposition_cctx_comp {m n: nat} (Gamma: ctx m) (C: cctx false m n) (c: comp n) B phi:
+with  context_typing_decomposition_cctx_comp {m n: nat} (Gamma: ctx m) phi (C: cctx false m n) (c: comp n) B:
   Gamma ⊢ fillc C c : B # phi -> { Delta & { B' & (Gamma [[Delta]] ⊢ C : B; B') * (Delta ⊢ c : B' # phi) } }%type.
 Proof.
   all: destruct C; cbn; intros.

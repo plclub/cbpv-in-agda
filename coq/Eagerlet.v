@@ -1,5 +1,5 @@
 Require Export CBN.
-Require Export Syntax.
+Require Export Syntax Types.
 Require Export StrongReduction.
 Require Export AbstractReductionSystems Base.
 Require Import Morphisms.
@@ -57,8 +57,9 @@ Ltac eagerlet_inv H :=
 
 (** ** Typing for eager let *)
 
-Lemma eagerlet_ty {n : nat} (Gamma : ctx n) (M : comp n) (N : comp (S n)) A B phi :
-  Gamma ⊢ M : F A # phi -> A .: Gamma ⊢ N : B # phi -> Gamma ⊢ $$ <- M; N : B # phi.
+Lemma eagerlet_ty {n : nat} (Gamma : ctx n) (M : comp n) (N : comp (S n)) A B phi1 phi2 phi :
+  Gamma ⊢ M : F A # phi1 -> A .: Gamma ⊢ N : B # phi2 ->
+  subeff (add phi1 phi2) phi -> Gamma ⊢ $$ <- M; N : B # phi.
 Proof.
   unfold eagerlet. intros. destruct M; eauto. inv X.
   eapply comp_typepres_substitution; eauto.

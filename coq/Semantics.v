@@ -9,15 +9,6 @@ Import List Notations.
 Require Export CBPV.Terms CBPV.Base.
 Import CommaNotation.
 
-(* Effect axiomatization *)
-
-Axiom eff_idL : forall {e}, add pure e = e .
-Axiom eff_idR : forall {e}, add e pure = e .
-Axiom eff_assoc : forall {e1 e2 e3}, add (add e1 e2) e3 = add e1 (add e2 e3).
-
-#[export] Hint Resolve eff_idL eff_idR eff_assoc : core.
-#[export] Hint Rewrite @eff_idL @eff_idR @eff_assoc : core.
-
 Ltac esimpl := autorewrite with core.
 
 (** * Semantics *)

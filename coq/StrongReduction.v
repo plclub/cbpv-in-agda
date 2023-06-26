@@ -245,9 +245,9 @@ Qed.
 
 
 (** ** Compatibility with substitutions *)
-Fixpoint primitive_step_subst m n k (f : fin m -> value n) (C1 C2 : comp k) (K: cctx false m k) phi:
+Fixpoint primitive_step_subst m n k (f : fin m -> value n) (C1 C2 : comp k) phi (K: cctx false m k):
   C1 ≽ C2 # phi -> subst_comp f (fillc K C1) ↪ subst_comp f (fillc K C2)
-with primitive_step_subst_value m n k (f : fin m -> value n) (C1 C2 : comp k) (K: vctx false m k) phi:
+with primitive_step_subst_value m n k (f : fin m -> value n) (C1 C2 : comp k) phi (K: vctx false m k):
   C1 ≽ C2 # phi -> subst_value f (fillv K C1) ↪ᵥ subst_value f (fillv K C2).
 Proof.
 Admitted.
