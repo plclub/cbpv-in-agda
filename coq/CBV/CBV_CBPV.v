@@ -31,28 +31,31 @@ Inductive has_typeV : forall {n} (Gamma : ctx_cbv n), Value n -> type -> effect 
 | typeOne n (Gamma : ctx_cbv n) phi : Gamma ⊩v One : Unit # phi
 | typeLam n (Gamma : ctx_cbv n) M A B phi phi' :
   A .: Gamma ⊢v M : B # phi' ->  Gamma ⊩v Lam M : Arr A phi' B # phi
-| typePair n (Gamma : ctx_cbv n) V1 V2 A B phi1 phi2 :
-  Gamma ⊩v V1 : A # phi1 ->
-  Gamma ⊩v V2 : B # phi2 ->
-  Gamma ⊩v Pair V1 V2 : Cross A B # add phi1 phi2
+| typePair n (Gamma : ctx_cbv n) V1 V2 A B phi:
+  Gamma ⊩v V1 : A # phi ->
+  Gamma ⊩v V2 : B # phi ->
+  Gamma ⊩v Pair V1 V2 : Cross A B # phi
 | typeInjL n (Gamma : ctx_cbv n) b V A B phi :
   Gamma  ⊩v V : (match b with |true => A |_ => B end) # phi ->
   Gamma ⊩v Inj b V : Plus A B # phi
 where "Gamma ⊩v V : A # phi" := (has_typeV Gamma V A phi)
 with has_typeE : forall {n} (Gamma : ctx_cbv n), Exp n -> type -> effect -> Type :=
 | typeVal n (Gamma : ctx_cbv n) V A phi : Gamma ⊩v V : A # phi -> Gamma ⊢v Val V : A # phi
-| typeApp n (Gamma : ctx_cbv n) M N A B phi1 phi2 phi3 :
-  Gamma ⊢v M : Arr A phi1 B # phi2 ->
-  Gamma ⊢v N : A # phi3 ->
-  Gamma ⊢v App M N : B # add phi1 (add phi2 phi3)
-| typeCaseS n (Gamma : ctx_cbv n) M N1 N2 A B C phi :
-    Gamma ⊢v M : Plus A B # phi ->
-    A, Gamma ⊢v N1 : C # phi ->
-    B, Gamma ⊢v N2 : C # phi ->
+| typeApp n (Gamma : ctx_cbv n) M N A B phi1 phi2 phi3 phi :
+  Gamma ⊢v M : Arr A phi3 B # phi1 ->
+  Gamma ⊢v N : A # phi2 ->
+  subeff (add phi1 (add phi2 phi3)) phi ->
+  Gamma ⊢v App M N : B # phi
+| typeCaseS n (Gamma : ctx_cbv n) M N1 N2 A B C phi1 phi2 phi :
+    Gamma ⊢v M : Plus A B # phi1 ->
+    A, Gamma ⊢v N1 : C # phi2 ->
+    B, Gamma ⊢v N2 : C # phi2 ->
+    subeff (add phi1 phi2) phi ->
     Gamma ⊢v CaseS M N1 N2 : C # phi
-| typeCaseP n (Gamma : ctx_cbv n) M N A B C phi:
-    Gamma ⊢v M : Cross A B # phi ->
-    B, A, Gamma ⊢v N : C # phi ->
+| typeCaseP n (Gamma : ctx_cbv n) M N A B C phi1 phi2 phi:
+    Gamma ⊢v M : Cross A B # phi1 ->
+    B, A, Gamma ⊢v N : C # phi2 ->
+    subeff (add phi1 phi2) phi ->
     Gamma ⊢v CaseP M N : C # phi
 where "Gamma ⊢v E : A # phi" := (has_typeE Gamma E A phi).
 
@@ -107,12 +110,11 @@ Proof.
   - destruct H; cbn.
     + specialize (typingVal_pres _ _ _ _ phi h).
       constructor. assumption.
-    + eapply eagerlet_ty; eauto. eapply eagerlet_ty; eauto.
-      * eapply comp_typepres_renaming.
-        -- admit.
-        -- cbv; eauto. admit.
-      * admit.
-      * admit.
+    + simpl. eapply eagerlet_ty; eauto.
+      eapply eagerlet_ty; eauto using comp_typepres_renaming.
+      econstructor.
+      * cbv; eauto.
+      * cbn; eauto.
     + eapply eagerlet_ty; eauto.
       econstructor; cbn; eauto; simpl.
       * cbv; eauto.
@@ -120,14 +122,12 @@ Proof.
         auto_case.
       *  eapply comp_typepres_renaming; eauto.
         auto_case.
-      * admit.
     + eapply eagerlet_ty; eauto.
       econstructor; eauto.
       * cbv; eauto.
       * eapply comp_typepres_renaming; eauto.
         auto_case.
-      * admit.
-Admitted.
+Qed.
 
 (** *** Translation and Substiution Commute *)
 
@@ -214,6 +214,7 @@ Lemma injective_eval:
 Proof with try (now repeat smartinv).
   apply ExpVal_ind; intros; try (destruct V; simpl in *; try congruence; inv H; f_equal; auto);  simpl in *.
   all: try (destruct V; cbn in *; try (inv H0); try (inv H1); repeat f_equal; eauto).
+  - destruct N; cbn in *...
   - destruct N; cbn in *...
    inv H0. f_equal. eauto.
   - destruct N; cbn in *...
