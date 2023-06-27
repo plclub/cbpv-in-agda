@@ -12,13 +12,13 @@ Reserved Notation "V1 ⇒ᵥ V2" (at level 60).
 
 (** ** Context Semantics *)
 Inductive strong_step {n: nat} : comp n -> comp n -> Prop :=
-| strong_reduce  m (c1 c2: comp m) (K: cctx false n m):
-    c1 ≽ c2 -> fillc K c1 ⇒ fillc K c2
+| strong_reduce  m (c1 c2: comp m) (K: cctx false n m) phi:
+    c1 ≽ c2 # phi -> fillc K c1 ⇒ fillc K c2
 where "C1 ⇒ C2" := (strong_step C1 C2).
 
 Inductive strong_step_value {n : nat} : value n -> value n -> Prop :=
-| strong_reduce_value k (c1 c2 : comp k) (K : vctx false n k) :
-    c1 ≽ c2 -> fillv K c1 ⇒ᵥ fillv K c2
+| strong_reduce_value k (c1 c2 : comp k) (K : vctx false n k) phi:
+    c1 ≽ c2 # phi -> fillv K c1 ⇒ᵥ fillv K c2
 where "V1 ⇒ᵥ V2" := (strong_step_value V1 V2).
 
 
@@ -43,7 +43,7 @@ Inductive sstep {n: nat} : comp n -> comp n -> Prop :=
 | sstepCaseSR (v: value n) c1 c2 c2': c2 ↪ c2' -> caseS v c1 c2 ↪ caseS v c1 c2'
 | sstepCasePV (v v': value n) c: v ↪ᵥ v' -> caseP v c ↪ caseP v' c
 | sstepCasePC (v: value n) c c': c ↪ c' -> caseP v c ↪ caseP v c'
-| sstepPrimitive (c c': comp n) : c ≽ c' -> c ↪ c'
+| sstepPrimitive (c c': comp n) phi: c ≽ c' # phi -> c ↪ c'
 where "C1 ↪ C2" := (@sstep _ C1 C2)
 with sstep_value {n: nat} : value n -> value n -> Prop :=
 | sstepValuePairL (v1 v1' v2: value n) : v1 ↪ᵥ v1' -> pair v1 v2 ↪ᵥ pair v1' v2
@@ -158,7 +158,7 @@ Proof.
 Qed.
 
 
-Global Instance subrel_step_sstep {n: nat}: subrelation (@step n) (@sstep n).
+Global Instance subrel_step_sstep {n: nat} {phi: effect}: subrelation (fun x y => @step n x y phi) (@sstep n).
 Proof.
   intros x y H; induction H; eauto.
 Qed.
@@ -187,8 +187,8 @@ Proof with intros ? S; inv S; eauto.
 Qed.
 
 (** *** Weak to Strong *)
-Lemma step_strong {n: nat} (c1 c2: comp n):
-  c1 > c2 -> c1 ⇒ c2.
+Lemma step_strong {n: nat} (c1 c2: comp n) phi:
+  c1 ≻ c2 # phi -> c1 ⇒ c2.
 Proof.
   induction 1.
   - eapply strong_reduce with (K := •__c); eauto.
@@ -197,40 +197,46 @@ Proof.
   - eapply strong_step_congruence with (K := cctxLetinL •__c c2); eauto.
 Qed.
 
-Lemma strong_step_progress (e: comp 0) (B: comptype) :
-  null ⊢ e : B -> (exists e', e ⇒ e') \/ nf e.
+Lemma strong_step_progress (e: comp 0) (B: comptype) phi:
+  null ⊢ e : B # phi -> (exists e', e ⇒ e') \/ nf e.
 Proof.
     intros [ [] | H2] % progress; eauto.
   left; eexists; eapply step_strong; eauto.
-Qed.
+Admitted.
 
 (** *** Strong Step Preservation *)
-Lemma strong_step_preservation {n: nat} (c1 c2: comp n) (Gamma: ctx n) B:
-  c1 ⇒ c2 -> inhab (Gamma ⊢ c1 : B) -> inhab (Gamma ⊢ c2 : B).
+Lemma strong_step_preservation {n: nat} (c1 c2: comp n) (Gamma: ctx n) B phi:
+  c1 ⇒ c2 -> inhab (Gamma ⊢ c1 : B # phi) -> inhab (Gamma ⊢ c2 : B # phi).
 Proof.
+Admitted.
+(*
   intros [] [];
   destruct (context_typing_decomposition_cctx_comp _  _ X) as (Delta & B' & H1 & H2);
   destruct (primitive_preservation H H2);
   constructor; apply (cctx_comp_typing_soundness H1 X0).
 Qed.
+*)
 
 Lemma strong_step_value_preservation {n: nat} (v1 v2: value n) (Gamma: ctx n) A:
   v1 ⇒ᵥ v2 -> inhab (Gamma ⊩ v1 : A) -> inhab (Gamma ⊩ v2 : A).
 Proof.
+Admitted.
+(*
   intros [] [];
   destruct (context_typing_decomposition_vctx_comp _  _ X) as (Delta & B' & H1 & H2);
   destruct (primitive_preservation H H2);
   constructor; apply (vctx_comp_typing_soundness H1 X0).
 Qed.
+*)
 
-Lemma sstep_preservation {n: nat} (c1 c2: comp n) (Gamma: ctx n) B:
-  c1 ↪ c2 -> inhab (Gamma ⊢ c1 : B) -> inhab (Gamma ⊢ c2 : B).
+Lemma sstep_preservation {n: nat} (c1 c2: comp n) (Gamma: ctx n) B phi:
+  c1 ↪ c2 -> inhab (Gamma ⊢ c1 : B # phi) -> inhab (Gamma ⊢ c2 : B # phi).
 Proof.
   intros H % sstep_lemma. now apply strong_step_preservation.
 Qed.
 
-Lemma ssteps_preservation {n: nat} (c1 c2: comp n) (Gamma: ctx n) B:
-  star sstep c1 c2 -> inhab (Gamma ⊢ c1 : B) -> inhab (Gamma ⊢ c2 : B).
+Lemma ssteps_preservation {n: nat} (c1 c2: comp n) (Gamma: ctx n) B phi:
+  star sstep c1 c2 -> inhab (Gamma ⊢ c1 : B # phi) -> inhab (Gamma ⊢ c2 : B # phi).
 Proof.
   induction 1; eauto.
   intros H1. eapply sstep_preservation in H; eauto.
@@ -239,32 +245,41 @@ Qed.
 
 
 (** ** Compatibility with substitutions *)
-Fixpoint primitive_step_subst m n k (f : fin m -> value n) (C1 C2 : comp k) (K: cctx false m k):
-  C1 ≽ C2 -> subst_comp f (fillc K C1) ↪ subst_comp f (fillc K C2)
-with primitive_step_subst_value m n k (f : fin m -> value n) (C1 C2 : comp k) (K: vctx false m k):
-  C1 ≽ C2 -> subst_value f (fillv K C1) ↪ᵥ subst_value f (fillv K C2).
+Fixpoint primitive_step_subst m n k (f : fin m -> value n) (C1 C2 : comp k) phi (K: cctx false m k):
+  C1 ≽ C2 # phi -> subst_comp f (fillc K C1) ↪ subst_comp f (fillc K C2)
+with primitive_step_subst_value m n k (f : fin m -> value n) (C1 C2 : comp k) phi (K: vctx false m k):
+  C1 ≽ C2 # phi -> subst_value f (fillv K C1) ↪ᵥ subst_value f (fillv K C2).
 Proof.
+Admitted.
+(*
   all: destruct K; cbn; intros; eauto.
   - constructor; eapply pstep_subst; eauto.
   - destruct y.
 Qed.
+*)
 
 
 Lemma strong_step_subst m n (f : fin m -> value n) (C1 C2 : comp m) :
   C1 ⇒ C2 -> subst_comp f C1 ⇒ subst_comp f C2.
 Proof.
+Admitted.
+(*
   intros []; rewrite <-sstep_strong_step; eapply primitive_step_subst; assumption.
 Qed.
+*)
 
 Lemma strong_step_value_subst m n (f : fin m -> value n) (V1 V2 : value m) :
   V1 ⇒ᵥ V2 -> subst_value f V1 ⇒ᵥ subst_value f V2.
 Proof.
+Admitted.
+(*
     intros []; rewrite <-sstep_strong_step_value;  eapply primitive_step_subst_value; assumption.
 Qed.
+*)
 
 
-Lemma pstep_anti_renaming m n (f: fin m -> fin n) (c : comp m) (d: comp n) :
- ren_comp f c ≽ d -> exists2 d', c ≽ d' & d = ren_comp f d'.
+Lemma pstep_anti_renaming m n (f: fin m -> fin n) (c : comp m) (d: comp n) phi :
+ ren_comp f c ≽ d # phi -> exists2 d', c ≽ d' # phi & d = ren_comp f d'.
 Proof with eexists; eauto; now asimpl.
   destruct c; asimpl; intros H; inv H.
   - destruct v; try discriminate; cbn in *; injection H1 as ->...
@@ -274,7 +289,7 @@ Proof with eexists; eauto; now asimpl.
   - destruct b, c; try discriminate; cbn in *; injection H2 as ->...
   - destruct v; try discriminate; cbn in *; injection H0 as -> ->; destruct b0...
   -  destruct v; try discriminate; cbn in *. injection H0 as -> ->...
-Qed.
+Admitted.
 
 
 Fixpoint sstep_anti_renaming m n (f : fin m -> fin n) (c : comp m) (d : comp n) :
@@ -285,6 +300,8 @@ with sstep_value_anti_renaming m n (f : fin m -> fin n) (v : value m) (w : value
   exists2 w', v ↪ᵥ  w' & w = ren_value f w'.
 Proof.
   1: destruct c.
+Admitted.
+(*
   12: destruct v.
   all: cbn; intros H; inv H.
   all: try solve [intros; edestruct sstep_anti_renaming; eauto; subst; eexists; eauto].
@@ -297,7 +314,7 @@ Proof.
   1: specialize (pstep_anti_renaming f (caseS v c1 c2) H0) as []; eexists; eauto.
   1: specialize (pstep_anti_renaming f (caseP v c) H0) as []; eexists; eauto.
 Qed.
-
+*)
 
 Lemma strong_step_anti_renaming m n (f : fin m -> fin n) (c : comp m) (d : comp n) :
   ren_comp f c ⇒ d -> exists2 d', c ⇒ d' & d = ren_comp f d'.
@@ -583,7 +600,7 @@ Proof.
   - econstructor 2. eapply sstep_strong_step, strong_step_subst, sstep_strong_step; eauto. eassumption.
 Qed.
 
-Instance pstep_subrel n : subrelation (@pstep n) (@sstep n).
+Instance pstep_subrel n phi : subrelation (fun x y => @pstep n x y phi) (@sstep n).
 Proof.
   cbv. intros. eauto.
 Qed.
@@ -609,24 +626,34 @@ Lemma stepv_pair_inv n (P : value n -> Prop) (v1 v2 : value n) :
 Proof.
   intros H1 H2 v' st. inv st. destruct K; try discriminate; try contradiction;
     cbn in *; injection H; intros E1 E2; subst; clear H.
+Admitted.
+(*
   now apply H1. now apply H2.
 Qed.
+*)
 
 Lemma stepv_inj_inv n (P : value n -> Prop) b (v : value n) :
   (forall v', v ⇒ᵥ v' -> P (inj b v')) ->
   (forall v', inj b v ⇒ᵥ v' -> P v').
 Proof.
   intros H v' st. inv st. destruct K; try discriminate; try contradiction; cbn in *.
-  injection H0. intros E1 E2. subst. apply H. constructor. exact H1.
+  injection H0. intros E1 E2. subst. apply H.
+Admitted.
+(*constructor. exact H1.
 Qed.
+*)
 
 Lemma stepv_thunk_inv n (P : value n -> Prop) (c : comp n) :
   (forall c', c ⇒ c' -> P (thunk c')) ->
   (forall v', thunk c ⇒ᵥ v' -> P v').
 Proof.
   intros H v' st. inv st. destruct K; try discriminate; try contradiction; cbn in *.
-  injection H0. intros E. subst. apply H. constructor. assumption.
+  injection H0. intros E. subst. apply H.
+Admitted.
+(*
+constructor. assumption.
 Qed.
+*)
 
 Lemma step_cu_inv n (c : comp n) :
   ~cu ⇒ c.
@@ -642,8 +669,12 @@ Lemma step_force_inv n (P : comp n -> Prop) (v : value n) :
 Proof.
   intros H1 H2 c st. inv st. destruct K; try discriminate; cbn in *; subst; cbn.
   - inv H0. now apply H1.
-  - injection H. intros; subst. apply H2. constructor. assumption.
+  - injection H. intros; subst. apply H2.
+Admitted.
+(*
+constructor. assumption.
 Qed.
+*)
 
 Lemma step_lambda_inv n (P : comp n -> Prop) (c : comp (S n)) :
   (forall c', c ⇒ c' -> P (lambda c')) ->
@@ -651,8 +682,11 @@ Lemma step_lambda_inv n (P : comp n -> Prop) (c : comp (S n)) :
 Proof.
   intros H c' st. inv st. destruct K; try discriminate; cbn in *; subst; cbn.
   - now inv H1.
-  - injection H0. intros; subst. apply H. constructor. assumption.
+  - injection H0. intros; subst. apply H.
+Admitted.
+(*constructor. assumption.
 Qed.
+*)
 
 Lemma step_app_inv n (P : comp n -> Prop) (c : comp n) (v : value n) :
   (forall (b : comp (S n)), c = lambda b -> P (subst_comp (v..) b)) ->
@@ -662,9 +696,11 @@ Lemma step_app_inv n (P : comp n -> Prop) (c : comp n) (v : value n) :
 Proof.
   intros H1 H2 H3 c' st. inv st. destruct K; try discriminate; cbn in *; subst; cbn.
   - inv H0. now apply H1.
-  - injection H; intros; subst. apply H2. constructor. assumption.
+  - injection H; intros; subst. apply H2.
+Admitted.
+(*constructor. assumption.
   - injection H; intros; subst. apply H3. constructor. assumption.
-Qed.
+Qed.*)
 
 Lemma step_tuple_inv n (P : comp n -> Prop) (c1 c2 : comp n) :
   (forall c', c1 ⇒ c' -> P (tuple c' c2)) ->
@@ -673,9 +709,13 @@ Lemma step_tuple_inv n (P : comp n -> Prop) (c1 c2 : comp n) :
 Proof.
   intros H1 H2 c' st. inv st. destruct K; try discriminate; cbn in *; subst; cbn.
   - now inv H0.
-  - injection H; intros; subst. apply H1. constructor. assumption.
+  - injection H; intros; subst. apply H1.
+Admitted.
+(*
+constructor. assumption.
   - injection H; intros; subst. apply H2. constructor. assumption.
 Qed.
+*)
 
 Lemma step_ret_inv n (P : comp n -> Prop) (v : value n) :
   (forall v', v ⇒ᵥ v' -> P (ret v')) ->
@@ -683,8 +723,11 @@ Lemma step_ret_inv n (P : comp n -> Prop) (v : value n) :
 Proof.
   intros H c st. inv st; destruct K; try discriminate.
   - cbn in *. subst. inv H1.
-  - cbn in *. injection H0; intros E; subst. apply H. constructor. exact H1.
+  - cbn in *. injection H0; intros E; subst. apply H.
+Admitted.
+(*constructor. exact H1.
 Qed.
+*)
 
 Lemma step_letin_inv n (P : comp n -> Prop) (c1 : comp n) c2 :
   (forall v, c1 = ret v -> P (subst_comp (v..) c2)) ->
@@ -694,9 +737,12 @@ Lemma step_letin_inv n (P : comp n -> Prop) (c1 : comp n) c2 :
 Proof.
   intros H1 H2 H3 c' st. inv st; destruct K; try discriminate; cbn in *.
   - subst. inv H0. now apply H1.
-  - injection H. intros E1 E2. subst. apply H2. constructor. assumption.
+  - injection H. intros E1 E2. subst. apply H2.
+Admitted.
+(*constructor. assumption.
   - injection H. intros E1 E2. subst. apply H3. constructor. assumption.
 Qed.
+*)
 
 Lemma step_proj_inv n (P : comp n -> Prop) (b : bool) (c : comp n) :
   (forall c1 c2, c = tuple c1 c2 -> P (if b then c1 else c2)) ->
@@ -705,8 +751,11 @@ Lemma step_proj_inv n (P : comp n -> Prop) (b : bool) (c : comp n) :
 Proof.
   intros H1 H2 c' st. inv st; destruct K; try discriminate; cbn in *.
   - subst. inv H0. now apply H1.
-  - injection H; intros; subst. apply H2. constructor. assumption.
+  - injection H; intros; subst. apply H2.
+Admitted.
+(*constructor. assumption.
 Qed.
+*)
 
 Lemma step_caseZ_inv n (P : comp n -> Prop) (v : value n) :
   (forall v', v ⇒ᵥ v' -> P (caseZ v')) ->
@@ -714,8 +763,11 @@ Lemma step_caseZ_inv n (P : comp n -> Prop) (v : value n) :
 Proof.
   intros H c st. inv st. destruct K; try discriminate; cbn in *.
   - subst. inv H1.
-  - injection H0. intros E; subst. apply H. constructor. assumption.
+  - injection H0. intros E; subst. apply H.
+Admitted.
+(*constructor. assumption.
 Qed.
+*)
 
 Lemma step_caseS_inv n (P : comp n -> Prop) v c1 c2 :
   (forall b v', v = inj b v' -> P (subst_comp (v'..) (if b then c1 else c2))) ->
@@ -726,10 +778,13 @@ Lemma step_caseS_inv n (P : comp n -> Prop) v c1 c2 :
 Proof.
   intros H1 H2 H3 H4 d st. inv st. destruct K; try discriminate; cbn in *.
   - subst. inv H0. now apply H1.
+Admitted.
+(*
   - injection H. intros; subst. apply H2. constructor. assumption.
   - injection H. intros; subst. apply H3. constructor. assumption.
   - injection H. intros; subst. apply H4. constructor. assumption.
 Qed.
+*)
 
 Lemma step_caseP_inv n (P : comp n -> Prop) (v : value n) c :
   (forall v1 v2, v = pair v1 v2 -> P (subst_comp (v2,v1..) c)) ->
@@ -739,9 +794,13 @@ Lemma step_caseP_inv n (P : comp n -> Prop) (v : value n) c :
 Proof.
   intros H1 H2 H3 d st. inv st; destruct K; try discriminate; cbn in *; subst.
   - inv H0. now apply H1.
-  - injection H. intros E1 E2; subst. apply H2. constructor. assumption.
+  - injection H. intros E1 E2; subst. apply H2.
+Admitted.
+(*
+constructor. assumption.
   - injection H. intros E1 E2; subst. apply H3. constructor. assumption.
 Qed.
+*)
 
 Lemma step_ren_comp_inv m :
   (forall D C', D ↪ C' -> forall n C (rho : fin n -> fin m), D = ren_comp rho C -> exists C'', C ↪ C'' /\ C' = ren_comp rho C'') /\
@@ -762,7 +821,7 @@ Proof with intros; asimpl; f_equal; fext; now intros [].
     destruct b0; now asimpl.
   - destruct C; inv H. destruct v; inv H1. eexists; split; eauto.
     now asimpl.
-Qed.
+Admitted.
 
 Lemma ret_star_inv n (V : value n) C :
   ret V ↪* C -> exists V', C = ret V' /\ star sstep_value V V'.

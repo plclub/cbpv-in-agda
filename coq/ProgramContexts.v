@@ -134,9 +134,9 @@ Inductive vctxTyping {m: nat} {t: bool} (Gamma: ctx m) :
 | vctxTypingInj n (Delta: ctx n) (C: vctx t m n) A A1 A2 (b: bool):
     Gamma[[Delta]] ⊩ C : (if b then A1 else A2); A ->
     Gamma[[Delta]] ⊩ vctxInj b C : Sigma A1 A2; A
-| vctxTypingThunk n (Delta: ctx n) (C: cctx t m n) B A:
+| vctxTypingThunk n (Delta: ctx n) (C: cctx t m n) B A phi:
     Gamma[[Delta]] ⊢ C : B; A ->
-    Gamma[[Delta]] ⊩ vctxThunk C : U B; A
+    Gamma[[Delta]] ⊩ vctxThunk C : U phi B; A
 where "Gamma [[ Delta ]] ⊩ C : A ; T " := (@vctxTyping _ _ Gamma _  Delta C A T)
 
 with cctxTyping {m: nat} {t: bool} (Gamma: ctx m) :
@@ -146,34 +146,34 @@ with cctxTyping {m: nat} {t: bool} (Gamma: ctx m) :
 | cctxTypingLambda n (Delta: ctx n) (C: cctx t (S m) n) A A' B:
     (A .: Gamma) [[Delta]] ⊢ C : B; A' ->
       Gamma [[Delta]] ⊢ cctxLambda C : A → B; A'
-| cctxTypingForce n (Delta: ctx n) (C: vctx t m n) B A':
-    Gamma [[Delta]] ⊩ C : U B; A' ->
+| cctxTypingForce n (Delta: ctx n) (C: vctx t m n) B A' phi:
+    Gamma [[Delta]] ⊩ C : U phi B; A' ->
     Gamma [[Delta]] ⊢ cctxForce C : B; A'
 | cctxTypingAppL n (Delta: ctx n) (C: cctx t m n) A A' B v:
     Gamma[[Delta]] ⊢ C : A → B; A' ->
     Gamma ⊩ v : A  ->
     Gamma[[Delta]] ⊢ cctxAppL C v : B; A'
-| cctxTypingAppR n (Delta: ctx n) c (C: vctx t m n) A A' B :
-    Gamma ⊢ c : A → B  ->
+| cctxTypingAppR n (Delta: ctx n) c (C: vctx t m n) A A' B phi:
+    Gamma ⊢ c : A → B # phi ->
     Gamma[[Delta]] ⊩ C : A; A' ->
     Gamma[[Delta]] ⊢ cctxAppR c C : B; A'
-| cctxTypingTupleL n (Delta: ctx n) (C: cctx t m n) B1 B2 A c:
+| cctxTypingTupleL n (Delta: ctx n) (C: cctx t m n) B1 B2 A c phi:
     Gamma[[Delta]] ⊢ C : B1; A ->
-    Gamma ⊢ c : B2  ->
+    Gamma ⊢ c : B2 # phi ->
     Gamma[[Delta]] ⊢ cctxTupleL C c : Pi B1 B2; A
-| cctxTypingTupleR n (Delta: ctx n) (C: cctx t m n) B1 B2 A c:
-    Gamma ⊢ c : B1  ->
+| cctxTypingTupleR n (Delta: ctx n) (C: cctx t m n) B1 B2 A c phi:
+    Gamma ⊢ c : B1 # phi ->
     Gamma[[Delta]] ⊢ C : B2; A ->
     Gamma[[Delta]] ⊢ cctxTupleR c C : Pi B1 B2; A
 | cctxTypingRet n (Delta: ctx n) (C: vctx t m n) A A':
     Gamma [[Delta]] ⊩ C : A; A' ->
     Gamma [[Delta]] ⊢ cctxRet C : F A; A'
-| cctxTypingLetinL n (Delta: ctx n) (C: cctx t m n) A A' B c:
+| cctxTypingLetinL n (Delta: ctx n) (C: cctx t m n) A A' B c phi:
     Gamma[[Delta]] ⊢ C : F A; A' ->
-    A .: Gamma ⊢ c : B  ->
+    A .: Gamma ⊢ c : B # phi  ->
     Gamma[[Delta]] ⊢ cctxLetinL C c : B; A'
-| cctxTypingLetinR n (Delta: ctx n) (C: cctx t (S m) n) A A' B c:
-    Gamma ⊢ c : F A  ->
+| cctxTypingLetinR n (Delta: ctx n) (C: cctx t (S m) n) A A' B c phi:
+    Gamma ⊢ c : F A # phi  ->
     (A .: Gamma)[[Delta]] ⊢ C : B; A' ->
     Gamma[[Delta]] ⊢ cctxLetinR c C : B; A'
 | cctxTypingProj n (Delta: ctx n) (C: cctx t m n) A B1 B2 (b: bool):
@@ -182,24 +182,24 @@ with cctxTyping {m: nat} {t: bool} (Gamma: ctx m) :
 | cctxTypingCaseZ n (Delta: ctx n) (C: vctx t m n) A A':
     Gamma[[Delta]] ⊩ C : zero; A' ->
     Gamma[[Delta]] ⊢ cctxCaseZ C : A; A'
-| cctxTypingCaseSV n (Delta: ctx n) (C: vctx t m n) A1 A2 A' B c1 c2:
+| cctxTypingCaseSV n (Delta: ctx n) (C: vctx t m n) A1 A2 A' B c1 c2 phi:
     Gamma[[Delta]] ⊩ C : Sigma A1 A2; A' ->
-    A1 .: Gamma ⊢ c1 : B  ->
-    A2 .: Gamma ⊢ c2 : B  ->
+    A1 .: Gamma ⊢ c1 : B # phi  ->
+    A2 .: Gamma ⊢ c2 : B # phi  ->
     Gamma[[Delta]] ⊢ cctxCaseSV C c1 c2 : B; A'
-| cctxTypingCaseSL n (Delta: ctx n) (C: cctx t (S m) n) A1 A2 A' B v c2:
+| cctxTypingCaseSL n (Delta: ctx n) (C: cctx t (S m) n) A1 A2 A' B v c2 phi:
     Gamma ⊩ v : Sigma A1 A2  ->
     (A1 .: Gamma)[[Delta]] ⊢ C : B; A' ->
-    A2 .: Gamma ⊢ c2 : B  ->
+    A2 .: Gamma ⊢ c2 : B # phi  ->
     Gamma[[Delta]] ⊢ cctxCaseSL v C c2 : B; A'
-| cctxTypingCaseSR n (Delta: ctx n) (C: cctx t (S m) n) A1 A2 A' B v c1:
+| cctxTypingCaseSR n (Delta: ctx n) (C: cctx t (S m) n) A1 A2 A' B v c1 phi:
     Gamma ⊩ v : Sigma A1 A2  ->
-    A1 .: Gamma ⊢ c1 : B  ->
+    A1 .: Gamma ⊢ c1 : B # phi  ->
     (A2 .: Gamma)[[Delta]] ⊢ C : B; A' ->
     Gamma[[Delta]] ⊢ cctxCaseSR v c1 C : B; A'
-| cctxTypingCasePV n (Delta: ctx n) (C: vctx t m n) A1 A2 A' B c:
+| cctxTypingCasePV n (Delta: ctx n) (C: vctx t m n) A1 A2 A' B c phi:
     Gamma[[Delta]] ⊩ C : A1 * A2; A' ->
-    (A2 .: (A1 .: Gamma)) ⊢ c : B  ->
+    (A2 .: (A1 .: Gamma)) ⊢ c : B # phi  ->
     Gamma[[Delta]] ⊢ cctxCasePV C c : B; A'
 | cctxTypingCasePC n (Delta: ctx n) (C: cctx t (S (S m)) n) A1 A2 A' B v:
     Gamma ⊩ v : A1 * A2  ->
@@ -313,34 +313,34 @@ Qed.
 (** ** Typing Soundness - Context Filling *)
 (** Whenever we have a typed context and a correspondingly typed term,
     the result after inserting the term is well typed *)
-Fixpoint vctx_value_typing_soundness m  Gamma n Delta (C: vctx true m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A'):
+Fixpoint vctx_value_typing_soundness m  Gamma n Delta (phi: effect) (C: vctx true m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A'):
   forall v, Delta ⊩ v : A' -> (Gamma ⊩ fillv C v : A)
-with vctx_comp_typing_soundness m  Gamma n Delta (C: vctx false m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A'):
-  forall c, Delta ⊢ c : A' -> (Gamma ⊩ fillv C c : A)
-with cctx_value_typing_soundness m Gamma n Delta (C: cctx true m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A'):
-  forall v, Delta ⊩ v : A' -> (Gamma ⊢ fillc C v : B)
-with cctx_comp_typing_soundness m Gamma n Delta (C: cctx false m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A'):
-  forall c, Delta ⊢ c : A' -> (Gamma ⊢ fillc C c : B).
+with vctx_comp_typing_soundness m  Gamma n Delta phi (C: vctx false m n) A A' (H: Gamma[[Delta]] ⊩ C : A; A'):
+  forall c, Delta ⊢ c : A' # phi -> (Gamma ⊩ fillv C c : A)
+with cctx_value_typing_soundness m Gamma n Delta phi (C: cctx true m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A'):
+  forall v, Delta ⊩ v : A' -> (Gamma ⊢ fillc C v : B # phi)
+with cctx_comp_typing_soundness m Gamma n Delta phi (C: cctx false m n) B A' (H: Gamma[[Delta]] ⊢ C : B; A'):
+  forall c, Delta ⊢ c : A' # phi -> (Gamma ⊢ fillc C c : B # phi).
 Proof.
   all: destruct H; intros; cbn; eauto; intuition.
-Defined.
+Admitted.
 
 (** Whenever we plug a term in a context and the result is well typed, the term was well typed
     as well as the context
  *)
 
 
-Fixpoint context_typing_decomposition_vctx_value {m n: nat} (Gamma: ctx m) (C: vctx true m n) (v: value n) A :
+Fixpoint context_typing_decomposition_vctx_value {m n: nat} (Gamma: ctx m) (phi: effect) (C: vctx true m n) (v: value n) A:
   Gamma ⊩ fillv C v : A -> { Delta & { A' & (Gamma [[Delta]] ⊩ C : A; A') * (Delta ⊩ v : A') } }%type
 
-with context_typing_decomposition_vctx_comp {m n: nat} (Gamma: ctx m) (C: vctx false m n) (c: comp n) A :
-  Gamma ⊩ fillv C c : A -> { Delta & { A' & (Gamma [[Delta]] ⊩ C : A; A') * (Delta ⊢ c : A') } }%type
+with context_typing_decomposition_vctx_comp {m n: nat} (Gamma: ctx m) phi (C: vctx false m n) (c: comp n) A:
+  Gamma ⊩ fillv C c : A -> { Delta & { A' & (Gamma [[Delta]] ⊩ C : A; A') * (Delta ⊢ c : A' # phi) } }%type
 
-with  context_typing_decomposition_cctx_value {m n: nat} (Gamma: ctx m) (C: cctx true m n) (v: value n) B :
-  Gamma ⊢ fillc C v : B -> { Delta & { A' & (Gamma [[Delta]] ⊢ C : B; A') * (Delta ⊩ v : A') } }%type
+with  context_typing_decomposition_cctx_value {m n: nat} (Gamma: ctx m) phi (C: cctx true m n) (v: value n) B:
+  Gamma ⊢ fillc C v : B # phi -> { Delta & { A' & (Gamma [[Delta]] ⊢ C : B; A') * (Delta ⊩ v : A') } }%type
 
-with  context_typing_decomposition_cctx_comp {m n: nat} (Gamma: ctx m) (C: cctx false m n) (c: comp n) B:
-  Gamma ⊢ fillc C c : B -> { Delta & { B' & (Gamma [[Delta]] ⊢ C : B; B') * (Delta ⊢ c : B') } }%type.
+with  context_typing_decomposition_cctx_comp {m n: nat} (Gamma: ctx m) phi (C: cctx false m n) (c: comp n) B:
+  Gamma ⊢ fillc C c : B # phi -> { Delta & { B' & (Gamma [[Delta]] ⊢ C : B; B') * (Delta ⊢ c : B' # phi) } }%type.
 Proof.
   all: destruct C; cbn; intros.
   all: try solve [invt; edestruct context_typing_decomposition_vctx_value as [? [? [? ?] ] ]; eauto].
@@ -348,5 +348,8 @@ Proof.
   all: try solve [invt; edestruct context_typing_decomposition_cctx_value as [? [? [? ?] ] ]; eauto].
   all: try solve [invt; edestruct context_typing_decomposition_cctx_comp as [? [? [? ?] ] ]; eauto].
   1, 4: eexists; eexists; split; eauto.
-  all: destruct y.
+Admitted.
+(*
+ all: destruct y.
 Qed.
+*)

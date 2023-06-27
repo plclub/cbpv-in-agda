@@ -1,34 +1,11 @@
-valtype : Type
-comptype : Type
 value : Type
 comp : Type
 bool : Type
-effect : Type
-
-tick : effect
-add : effect -> effect -> effect
-pure : effect
-
-
-
-zero: valtype
-one: valtype
-U: effect -> comptype -> valtype
-Sigma: valtype -> valtype -> valtype
-cross: valtype -> valtype -> valtype
-
-
-cone: comptype
-F: valtype -> comptype
-Pi: comptype -> comptype -> comptype
-arrow: valtype -> comptype -> comptype
-
 
 u: value
 pair: value -> value -> value
 inj: bool -> value -> value
 thunk: comp -> value
-
 
 cu: comp
 force: value -> comp

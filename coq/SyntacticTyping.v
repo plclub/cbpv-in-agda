@@ -10,27 +10,6 @@ Import List Notations.
 Require Export CBPV.Terms CBPV.Base CBPV.Semantics.
 Import CommaNotation.
 
-Inductive subeff : effect -> effect -> Prop :=
-| sub_pure phi : subeff pure phi
-| sub_add_pure_left phi : subeff (add pure phi) phi
-| sub_add_pure_right phi : subeff (add phi phi) phi
-| sub_refl phi : subeff phi phi
- 
-.
-#[export] Hint Constructors subeff : core.
-
-Lemma subeff_addright phi1 phi2 phi: subeff (add phi1 phi2) phi -> subeff phi2 phi.
-Admitted.
-
-
-Lemma subeff_trans phi1 phi2 phi3: subeff phi1 phi2 -> subeff phi2 phi3 -> subeff phi1 phi3.
-Admitted.
-
-#[export] Hint Resolve subeff_addright : core.
-#[export] Hint Resolve 1 subeff_trans : core.
-
-
-
 (** * Syntactic Typing Judement  *)
 Reserved Notation "Gamma ⊢ c : A # phi" (at level 80, c at level 99).
 Reserved Notation "Gamma ⊩ v : A" (at level 80, v at level 99).
@@ -167,6 +146,8 @@ Proof.
 Qed.
 
 
+#[export] Hint Resolve comp_typepres_substitution.
+
 (** ** Preservation *)
 (** Type preservation under beta reduction  *)
 Lemma typepres_beta {n: nat} (Gamma: fin n -> valtype) c v A B phi:
@@ -175,49 +156,55 @@ Proof.
   intros H1 H2; eapply (comp_typepres_substitution H1); intros []; cbn; asimpl; eauto.
 Qed.
 
-
-
-Lemma type_subeff {n: nat} (Gamma: fin n -> valtype) c B phi: 
+Lemma type_subeff {n: nat} (Gamma: fin n -> valtype) c B phi:
   Gamma ⊢ c : B # phi -> forall psi, subeff phi psi -> Gamma ⊢ c : B # psi.
 Proof.
-  induction 1; intros psi1 h. all: eauto.
+  induction 1; intros; eauto.
 Qed.
 
 #[export] Hint Resolve type_subeff : core.
 
-
 Ltac esimpl_all := autorewrite with core in *.
 
 (** Type preservation under primitive reduction  *)
-Lemma primitive_preservation {n} (c c': comp n) Gamma B phi phi':
-  c ≽ c' # phi -> (Gamma ⊢ c : B # add phi phi') -> inhab (Gamma ⊢ c' : B # phi').
+Lemma primitive_preservation {n} (c c': comp n) Gamma B phi phi' phi'':
+  c ≽ c' # phi'' ->
+  Gamma ⊢ c : B # phi ->
+  subeff phi (add phi'' phi') ->
+  inhab (Gamma ⊢ c' : B # phi').
 Proof.
-  destruct 1; intros H1; repeat invt; try destruct b. 
-  all: constructor; eauto using typepres_beta. 
-  esimpl_all.
-  eapply comp_typepres_substitution; [eassumption |]; auto_case.
+  destruct 1; intros H1; repeat invt; try destruct b;
+  constructor; esimpl_all; eauto using typepres_beta.
+  all: try solve [eapply comp_typepres_substitution; [eauto|]; auto_case].
 Qed.
 
-
 (** Type preservation under reduction  *)
-Lemma preservation {n: nat} Gamma (c c': comp n) B phi phi':
-  (c ≻ c' # phi) -> Gamma ⊢ c : B # add phi phi' -> inhab (Gamma ⊢ c' : B # phi').
+Lemma preservation {n: nat} Gamma (c c': comp n) B phi phi' phi'':
+  c ≻ c' # phi'' ->
+  Gamma ⊢ c : B # phi ->
+  subeff phi (add phi'' phi') ->
+  inhab (Gamma ⊢ c' : B # phi').
 Proof.
-  induction 1 in Gamma, B, phi' |-* ; [ now apply primitive_preservation | idtac.. ].
-  all: intros; invt. 
+  induction 1 in Gamma, B, phi, phi' |-*; [ now apply primitive_preservation | idtac.. ].
+  all: intros; invt.
+  all: try solve [destruct (IHstep _ _ _ _ X0 H0); econstructor; eauto].
+  - assert (subeff phi1 (add phi0 phi1)). eauto.
+    assert (subeff (add phi0 phi1) (add phi0 (add phi0 phi1))). eauto.
+    destruct (IHstep _ _ _ _ (type_subeff X0 H1) H2).
+    econstructor. eapply typeLetin.
+    * eassumption.
+    * eassumption.
+    * admit.
 Admitted.
-(*  all: destruct (IHstep _ _ _ X0). 
-  all: econstructor; eauto.
-Qed. *)
 
 Lemma preservation_steps n (Gamma: ctx n)(c c': comp n) A phi phi':
     Gamma ⊢ c : A # add phi phi' -> c >* c' # phi -> inhab (Gamma ⊢ c' : A # phi').
 Proof.
   induction 2; eauto using preservation.
-Admitted.
-(*
-  specialize (preservation H X) as [H1]; eauto.
-Qed. *)
+  assert (subeff (add p phi') (add p1 (add p2 phi'))); subst.
+  autorewrite with core; apply subeff_refl.
+  specialize (preservation H X H2) as [H3]; eauto.
+Qed.
 
 (** ** Progress *)
 Lemma progress (e: comp 0) (B: comptype) (phi : effect) :

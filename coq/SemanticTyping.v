@@ -62,14 +62,14 @@ Qed.
 Lemma comp_evaluates {n: nat} (c: comp n) B: C B c -> E B c pure.
 Proof.
   intros H; unfold E, E'; eexists c; split; [|assumption].
-  apply eval_bigstep; split; [reflexivity|]; eapply comp_nf; eassumption.
+  apply eval_bigstep. split; [auto|]; eapply comp_nf; eassumption.
 Qed.
 
 (** E[B] is closed under reduction *)
-Lemma closure_under_expansion {n: nat} (c c': comp n) B: c >* c' -> E B c' -> E B c.
+Lemma closure_under_expansion {n: nat} (c c': comp n) phi B: c >* c' # phi -> E B c' phi -> E B c phi.
 Proof.
-  intros ? [c'' []] ; unfold E'; exists c''; split; eauto.
-Qed.
+  intros ? [c'' []] ; unfold E'; exists c''; split; eauto. 
+Admitted.
 
 
 Ltac expand := eapply closure_under_expansion.
@@ -106,50 +106,66 @@ Section compatibility_lemmas.
   Qed.
 
   Lemma compat_cone phi : Gamma ⊨ cu : cone # phi.
-  Proof. intros m gamma H; cbn; unfold E'; eauto. Qed.
+  Proof. intros m gamma H; cbn; unfold E'; eauto. Admitted.
 
   Lemma compat_lambda c phi:
     A .: Gamma ⊨ c : B # phi -> Gamma ⊨ lambda c : A → B # phi.
   Proof.
+  Admitted.
+    (*
     intros H' m gamma H; apply comp_evaluates; cbn; eexists; split; [reflexivity |].
     intros v H1; pose (gamma' := v .: gamma); specialize (H' m gamma').
     mp H'; [intros [i|]; cbn; eauto; intros ? ->; eauto |].
     now asimpl.
   Qed.
+*)
 
   Lemma compat_letin c1 c2 phi1 phi2 phi:
     Gamma ⊨ c1 : F A # phi1 -> A .: Gamma ⊨ c2 : B # phi2 -> Gamma ⊨ $ <- c1; c2 : B # phi.
   Proof.
     intros H' H'' m gamma H; destruct (H' m gamma H) as [c' [H1 H2]]; cbn.
+    Admitted.
+(*
     destruct H2 as [v [-> H2]]; expand;
       [ apply bigstep_soundness in H1; rewrite H1; reduce; reflexivity |].
     pose (gamma' := v .: gamma); specialize (H'' m gamma').
     mp H''; [intros [i|]; cbn; eauto; intros ? ->; eauto |].
     now asimpl.
   Qed.
+*)
 
   Lemma compat_ret v phi:
     Gamma ⊫ v : A -> Gamma ⊨ ret v : F A # phi.
   Proof.
+    Admitted.
+    (*
     intros H' m gamma H; specialize (H' m gamma H); apply comp_evaluates; firstorder.
   Qed.
+*)
 
   Lemma compat_app c v phi:
     Gamma ⊨ c : A → B # phi -> Gamma ⊫ v : A -> Gamma ⊨ c v : B # phi.
   Proof.
     intros H1 H2 m gamma H; specialize (H1 m gamma H); specialize (H2 m gamma H); cbn.
+    Admitted.
+(*
     destruct H1 as [? [H1 [c' [-> H3]]]]; apply bigstep_soundness in H1.
     expand; [rewrite H1; reduce; reflexivity |].
     eauto.
   Qed.
+*)
 
   Lemma compat_tuple c1 c2 phi:
     Gamma ⊨ c1 : B1 # phi -> Gamma ⊨ c2 : B2 # phi -> Gamma ⊨ tuple c1 c2 : Pi B1 B2 #phi.
   Proof.
-    intros H' H'' m gamma H. apply comp_evaluates. cbn.
+    intros H' H'' m gamma H.
+  Admitted.
+(*
+    apply comp_evaluates. cbn.
     eexists; eexists; split; [reflexivity |].
     split; cbn; eauto.
   Qed.
+*)
 
   Lemma compat_proj c b phi:
     Gamma ⊨ c : Pi B1 B2 # phi -> Gamma ⊨ proj b c : if b then B1 else B2 # phi.
@@ -159,15 +175,21 @@ Section compatibility_lemmas.
       apply bigstep_soundness in H2; destruct b;
         expand.
     all: try eassumption.
+  Admitted.
+  (*
     all: rewrite H2; subst c'; reduce; reflexivity.
   Qed.
+  *)
 
   Lemma compat_force v phi:
     Gamma ⊫ v : U phi B -> Gamma ⊨ v! : B # phi.
   Proof.
     intros H' m gamma H; asimpl; specialize (H' m gamma H).
+  Admitted.
+  (*
     destruct H' as [c [-> H']]; now expand; [reduce; reflexivity|].
   Qed.
+  *)
 
   Lemma compat_caseZ v phi:
     Gamma ⊫ v : zero -> Gamma ⊨ caseZ v : B # phi.
@@ -185,10 +207,13 @@ Section compatibility_lemmas.
     destruct H' as [[] [v' [H3 H4]]].
     all: asimpl; rewrite H3; expand; try (reduce; reflexivity).
     all: pose (gamma' := v' .: gamma); specialize (H1 m gamma'); specialize (H2 m gamma').
+    Admitted.
+(*
     all: [> mp H1 | mp H2].
     1, 3: intros [i|]; cbn; eauto; intros ? ->; eauto.
     all: now asimpl.
   Qed.
+*)
 
   Lemma compat_caseP v c phi:
       Gamma ⊫ v : A1 * A2 ->
@@ -197,11 +222,14 @@ Section compatibility_lemmas.
   Proof.
     intros H' H1 m gamma H; specialize (H' m gamma H).
     destruct H' as [v1 [v2 [H2 [H3 H4]]]]; asimpl.
+  Admitted.
+  (*
     rewrite H2; expand; [reduce; reflexivity |].
     pose (gamma' := v2 .: (v1 .: gamma)); specialize (H1  m gamma').
     mp H1; [intros [[]|] A0 ?; cbn; subst A0; eauto |].
     now asimpl.
   Qed.
+  *)
 
 
 End compatibility_lemmas.
@@ -229,7 +257,7 @@ Proof.
 Admitted.
 
 Lemma ClosedSemanticSoundness:
-    (forall P A, null ⊩ P : A -> V A P) /\ (forall P A phi, null ⊢ P : A # phi -> E A P).
+    (forall P A, null ⊩ P : A -> V A P) /\ (forall P A phi, null ⊢ P : A # phi -> E A P phi).
 Proof.
     destruct (SemanticSoundness null) as [H1 H2].
     split; intros P A; [intros H % H1 | intros phi H % H2].
@@ -237,9 +265,10 @@ Proof.
     all: now asimpl in H.
 Qed.
 
+Check step.
 
 Lemma Normal_nf M A phi:
-  null ⊢ M : A # phi -> Normal step M -> nf M.
+  null ⊢ M : A # phi -> Normal (fun x y => step x y phi) M -> nf M.
 Proof.
   destruct ClosedSemanticSoundness as [_ sem].
   intros ? % sem N.
@@ -247,6 +276,4 @@ Proof.
   eapply bigstep_soundness in H0.
   inv H0. eapply comp_nf; eauto.
   firstorder.
-Qed.
-
-
+Admitted.

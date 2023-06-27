@@ -4,7 +4,7 @@ Set Implicit Arguments.
 Require Import Psatz Logic List Classes.Morphisms.
 Import List Notations.
 
-Require Export Syntax Base AbstractReductionSystems.
+Require Export Syntax Base AbstractReductionSystems Types.
 
 (** Extension to the Syntax file *)
 (** Mututal Inductive Scheme for values and computations *)

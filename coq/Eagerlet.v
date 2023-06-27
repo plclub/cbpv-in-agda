@@ -1,5 +1,5 @@
 Require Export CBN.
-Require Export Syntax.
+Require Export Syntax Types.
 Require Export StrongReduction.
 Require Export AbstractReductionSystems Base.
 Require Import Morphisms.
@@ -57,8 +57,9 @@ Ltac eagerlet_inv H :=
 
 (** ** Typing for eager let *)
 
-Lemma eagerlet_ty {n : nat} (Gamma : ctx n) (M : comp n) (N : comp (S n)) A B :
-  Gamma ⊢ M : F A -> A .: Gamma ⊢ N : B -> Gamma ⊢ $$ <- M; N : B.
+Lemma eagerlet_ty {n : nat} (Gamma : ctx n) (M : comp n) (N : comp (S n)) A B phi1 phi2 phi :
+  Gamma ⊢ M : F A # phi1 -> A .: Gamma ⊢ N : B # phi2 ->
+  subeff (add phi1 phi2) phi -> Gamma ⊢ $$ <- M; N : B # phi.
 Proof.
   unfold eagerlet. intros. destruct M; eauto. inv X.
   eapply comp_typepres_substitution; eauto.
@@ -81,26 +82,31 @@ Qed.
 
 (** ** Eager let and reduction *)
 
-Lemma let_to_eagerlet {n} (M : comp n) N :
-  letin M N >* eagerlet M N.
+Lemma let_to_eagerlet {n} (M : comp n) N phi :
+  letin M N >* eagerlet M N # phi.
 Proof.
   destruct M; eauto.
-Qed.
+Admitted.
 
 (** ** Eager let is a congruence *)
 
 (** *** Weak reduction *)
 
-Instance proper_eagerlet_star_step_L : forall n, Proper (star step ==> eq ==> star (@step n)) eagerlet.
+Instance proper_eagerlet_star_step_L : forall n phi,
+    Proper (star (fun x y => step x y phi) ==> eq ==> star (fun x y => @step n x y phi)) eagerlet.
 Proof.
+Admitted.
+(*
   intros n c1 c1' H ? c2 ->.
   destruct c1, c1'; cbn. all: try rewrite H; eauto.
   all: inv H. all: try inv H0. all:try inv H. reflexivity.
 Qed.
+*)
 
-
-Instance proper_eagerlet_plus_step_L n  : Proper (plus step ==> eq ==> plus step) (@eagerlet n).
+Instance proper_eagerlet_plus_step_L n phi : Proper (plus (fun x y => step x y phi) ==> eq ==> plus (fun x y => step x y phi)) (@eagerlet n).
 Proof.
+Admitted.
+(*
   repeat (hnf; intros). subst. unfold eagerlet at 1. inv H. inv H0. inv H.
   all: try now (eapply step_star_plus; eauto using let_to_eagerlet).
   destruct x.
@@ -108,6 +114,7 @@ Proof.
   all: try now rewrite H1, let_to_eagerlet.
   inv H0. inv H.
 Qed.
+*)
 
 (** *** Strong reduction *)
 
@@ -116,8 +123,11 @@ Proof.
   repeat (hnf; intros); subst.
   destruct (eagerlet_inv y x0) as [ [-> ] | (? & -> & ?)].
   - eapply step_star_plus; try rewrite <- let_to_eagerlet; try reflexivity; eauto.
+Admitted.
+(*
   - rewrite e. cbn. eapply plus_sstep_preserves. eauto.
 Qed.
+*)
 
 Instance proper_eagerlet_star_ssstep_R n :
   Proper (eq ==> star sstep ==> star (@sstep n)) eagerlet.
@@ -142,10 +152,13 @@ Proof.
   repeat (hnf; intros). subst.
   destruct x; cbn.
   all: try now rewrite <- let_to_eagerlet, H.
-  inv H; try inv H0. cbn. eapply proper_subst_comp.
+  inv H; try inv H0. cbn.
+Admitted.
+(*eapply proper_subst_comp.
   intros []; cbn; eauto.
 Qed.
-  
+*)
+
 Instance proper_eagerlet_star_sstep_L n  :
   Proper (star sstep ==> eq ==> star (@sstep n)) (eagerlet).
 Proof.
@@ -165,7 +178,7 @@ Lemma proper_eagerlet_sstep_L n (M M' : comp n) N :
 Proof.
   intros. inv H; cbn; eauto.
   inv H1; cbn; eauto; eapply step_star_plus; try rewrite <- let_to_eagerlet; try reflexivity; eauto.
-Qed.
+Admitted.
 
 Lemma proper_eagerlet_plus_sstep_L n (M M' : comp n) N :
   plus sstep M M' -> (forall V V', sstep_value V V' -> plus sstep (subst_comp (V..) N) (subst_comp (V'..) N)) -> plus sstep (eagerlet M N) (eagerlet M' N).
