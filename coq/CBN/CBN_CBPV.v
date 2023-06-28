@@ -13,8 +13,6 @@ Proof.
   now intros ? ->.
 Qed.
 
-Hint Constructors sstep star.
-
 (** * Simply typed CBN *)
 
 (** ** Typing *)

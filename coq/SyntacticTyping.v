@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Require Import Psatz  Logic List Classes.Morphisms.
 Import List Notations.
 
-Require Export CBPV.Terms CBPV.Base CBPV.Semantics.
+Require Export CBPV.Terms CBPV.Base.
 Import CommaNotation.
 
 (** * Syntactic Typing Judement  *)
@@ -163,61 +163,3 @@ Proof.
 Qed.
 
 #[export] Hint Resolve type_subeff : core.
-
-Ltac esimpl_all := autorewrite with core in *.
-
-(** Type preservation under primitive reduction  *)
-Lemma primitive_preservation {n} (c c': comp n) Gamma B phi phi' phi'':
-  c ≽ c' # phi'' ->
-  Gamma ⊢ c : B # phi ->
-  subeff phi (add phi'' phi') ->
-  inhab (Gamma ⊢ c' : B # phi').
-Proof.
-  destruct 1; intros H1; repeat invt; try destruct b;
-  constructor; esimpl_all; eauto using typepres_beta.
-  all: try solve [eapply comp_typepres_substitution; [eauto|]; auto_case].
-Qed.
-
-(** Type preservation under reduction  *)
-Lemma preservation {n: nat} Gamma (c c': comp n) B phi phi' phi'':
-  c ≻ c' # phi'' ->
-  Gamma ⊢ c : B # phi ->
-  subeff phi (add phi'' phi') ->
-  inhab (Gamma ⊢ c' : B # phi').
-Proof.
-  induction 1 in Gamma, B, phi, phi' |-*; [ now apply primitive_preservation | idtac.. ].
-  all: intros; invt.
-  all: try solve [destruct (IHstep _ _ _ _ X0 H0); econstructor; eauto].
-  - assert (subeff phi1 (add phi0 phi1)). eauto.
-    assert (subeff (add phi0 phi1) (add phi0 (add phi0 phi1))). eauto.
-    destruct (IHstep _ _ _ _ (type_subeff X0 H1) H2).
-    econstructor. eapply typeLetin.
-    * eassumption.
-    * eassumption.
-    * admit.
-Admitted.
-
-Lemma preservation_steps n (Gamma: ctx n)(c c': comp n) A phi phi':
-    Gamma ⊢ c : A # add phi phi' -> c >* c' # phi -> inhab (Gamma ⊢ c' : A # phi').
-Proof.
-  induction 2; eauto using preservation.
-  assert (subeff (add p phi') (add p1 (add p2 phi'))); subst.
-  autorewrite with core; apply subeff_refl.
-  specialize (preservation H X H2) as [H3]; eauto.
-Qed.
-
-(** ** Progress *)
-Lemma progress (e: comp 0) (B: comptype) (phi : effect) :
-  null ⊢ e : B # phi -> (exists e', exists phi',  e ≻  e' # phi') \/ nf e.
-Proof with (left; eexists; eexists; eauto).
-  enough (
-      forall n Gamma e B phi, Gamma ⊢ e : B # phi->
-      (match n return ctx n -> Prop with 0 => fun Gamma => Gamma = null | _ => fun  _ => False end) Gamma ->
-      (exists e', exists phi', e ≻ e' # phi') \/ nf e
-    ) by eauto.
-  induction 1; destruct m; intuition; subst Gamma.
-  1, 3, 5: destruct H1 as [e' [phi' H1]]...
-  1 - 3: inv H1; invt...
-  5: idtac...
-  all: inv v0; try (destruct i)...
-Qed.
