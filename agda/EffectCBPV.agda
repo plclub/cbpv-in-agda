@@ -11,6 +11,8 @@ module EffectCBPV (E : Effect) where
 open Effect E
 open Properties E
 
+-- Types
+
 mutual
   data ValType : Set where
     𝟙 : ValType
@@ -21,6 +23,8 @@ mutual
     𝑭 : ValType → CompType
 
 infixr 7 _⇒_
+
+-- Terms
 
 mutual
   data Val (n : ℕ) : Set where
@@ -46,6 +50,8 @@ infix 9 ♯_
 infixr 4 $⇐_⋯_
 infix 5 ⟪_⟫
 
+-- Typing contexts
+
 Ctx : ℕ → Set
 Ctx n = Fin n → ValType
 
@@ -58,6 +64,8 @@ _∷_ : ∀ {n : ℕ} → Ctx n → ValType → Ctx (suc n)
           (suc n) → Γ n
 
 infixl 5 _∷_
+
+-- Syntactic typing rules
 
 mutual
   data _⊢v_⦂_ {n : ℕ} (Γ : Ctx n) : Val n → ValType → Set where
@@ -117,6 +125,8 @@ mutual
 infix 4 _⊢v_⦂_
 infix 4 _⊢c_⦂_#_
 
+-- Subeffecting well-typed terms
+
 type-subeff : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {B : CompType} {φ ψ : Eff}
             → Γ ⊢c M ⦂ B # φ
             → φ ≤ ψ
@@ -131,15 +141,21 @@ type-subeff (typeLetin pf₁ pf₂ φ₁+φ₂≤φ) φ≤ψ =
 type-subeff (typeTick tock) φ≤ψ = typeTick (≤-trans tock φ≤ψ)
 
 mutual
+  -- Closed values
+
   data ClosVal : Set where
     unit : ClosVal
 
     clos⦅_,⟪_⟫⦆ : ∀ {n : ℕ} → Env n → Comp n → ClosVal
 
+  -- Closed terminals
+
   data ClosTerminal : Set where
     return_ : ClosVal → ClosTerminal
 
     clos⦅_,ƛ_⦆ : ∀ {n : ℕ} → Env n → Comp (suc n) → ClosTerminal
+
+  -- Environments
 
   Env : ℕ → Set
   Env n = Fin n → ClosVal
@@ -153,6 +169,8 @@ _∷ᵨ_ : ∀ {n : ℕ} → Env n → ClosVal → Env (suc n)
           (suc n) → ρ n
 
 infixl 5 _∷ᵨ_
+
+-- Operational semantics
 
 data _∣_⇓v_ {n : ℕ} (ρ : Env n) : Val n → ClosVal → Set where
   evalVar : ∀ {m : Fin n} {W : ClosVal}
@@ -208,6 +226,8 @@ data _∣_⇓c_#_ {n : ℕ} (ρ : Env n) : Comp n → ClosTerminal → Eff → S
 infix 4 _∣_⇓v_
 infix 4 _∣_⇓c_#_
 
+-- Logical relation for proving effect soundness
+
 mutual
   _∈-𝐺⟦_⟧v : ClosVal → ValType → Set
   unit ∈-𝐺⟦ 𝟙 ⟧v = ⊤
@@ -258,77 +278,161 @@ _⊨c_⦂_#_ {n} Γ M B φ = ∀ {ρ : Env n} → Γ ⊨ ρ → ρ , M , φ ∈-
 
 infix 4 _⊨c_⦂_#_
 
+-- Semantic typing rules
+
+semanticVar : ∀ {n : ℕ} {Γ : Ctx n} {m : Fin n}
+              --------------
+            → Γ ⊨v ♯ m ⦂ Γ m
+semanticVar {m = m} {ρ} Γ⊨ρ = W , evalVar {W = W} , W∈𝐺⟦A⟧v where
+  W = ρ m
+  W∈𝐺⟦A⟧v = Γ⊨ρ m
+
+semanticUnit : ∀ {n : ℕ} {Γ : Ctx n}
+               -------------
+             → Γ ⊨v unit ⦂ 𝟙
+semanticUnit _ = unit , evalUnit , tt
+
+semanticThunk : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {B : CompType} {φ : Eff}
+              → Γ ⊨c M ⦂ B # φ
+                ------------------
+              → Γ ⊨v ⟪ M ⟫ ⦂ 𝑼 φ B
+semanticThunk {M = M} Γ⊨M⦂B#φ {ρ} Γ⊨ρ = clos⦅ ρ ,⟪ M ⟫⦆ , evalThunk , Γ⊨M⦂B#φ Γ⊨ρ
+
+semanticAbs : ∀ {n : ℕ} {Γ : Ctx n} {A : ValType} {M : Comp (suc n)}
+                {B : CompType} {φ : Eff}
+            → Γ ∷ A ⊨c M ⦂ B # φ
+              --------------------
+            → Γ ⊨c ƛ M ⦂ A ⇒ B # φ
+semanticAbs {M = M} {φ = φ} Γ∷A⊨M⦂B#φ {ρ} Γ⊨ρ =
+  clos⦅ ρ ,ƛ M ⦆ , pure , φ , evalAbs ,
+    (λ W∈𝐺⟦A⟧v → Γ∷A⊨M⦂B#φ (⊨-ext Γ⊨ρ W∈𝐺⟦A⟧v) ) , subeff-lemma
+  where
+    subeff-lemma = ≡→≤ +-pure-idˡ
+
+semanticApp : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {A : ValType} {B : CompType}
+                {φ : Eff} {V : Val n}
+            → Γ ⊨c M ⦂ A ⇒ B # φ
+            → Γ ⊨v V ⦂ A
+              ------------------
+            → Γ ⊨c M · V ⦂ B # φ
+semanticApp Γ⊨M⦂A⇒B#φ Γ⊨V⦂A Γ⊨ρ
+  with Γ⊨M⦂A⇒B#φ Γ⊨ρ
+...  | T′@(clos⦅ ρ′ ,ƛ M′ ⦆) , φ′ , ψ , ρ∣M⇓T′#φ′ , pf , φ′+ψ≤φ
+  with Γ⊨V⦂A Γ⊨ρ
+...  | W , ρ∣V⇓W , W∈𝐺⟦A⟧v
+  with pf W∈𝐺⟦A⟧v
+...  | T , ψ₁ , ψ₂ , ρ′∷W∣M′⇓T#ψ₂ , T,ψ∈𝐺⟦B⟧v , ψ₁+ψ₂≤ψ =
+  T , φ′ + ψ₁ , ψ₂ , evalApp ρ∣M⇓T′#φ′ ρ∣V⇓W ρ′∷W∣M′⇓T#ψ₂ , T,ψ∈𝐺⟦B⟧v ,
+    subeff-lemma
+  where
+    subeff-lemma =
+      ≤-trans (≤-trans (≡→≤ +-assoc) (≤-+-compatibleˡ ψ₁+ψ₂≤ψ)) φ′+ψ≤φ
+
+semanticSequence : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n} {M : Comp n} {B : CompType}
+                     {φ : Eff}
+                 → Γ ⊨v V ⦂ 𝟙
+                 → Γ ⊨c M ⦂ B # φ
+                   ------------------
+                 → Γ ⊨c V » M ⦂ B # φ
+semanticSequence Γ⊨V⦂𝟙 Γ⊨M⦂B Γ⊨ρ
+  with Γ⊨V⦂𝟙 Γ⊨ρ
+...  | unit , ρ∣V⇓unit , _
+  with Γ⊨M⦂B Γ⊨ρ
+...  | T , φ₁ , φ₂ , ρ∣M⇓T#φ₁ , T,φ₂∈𝐺⟦B⟧c , φ₁+φ₂≤φ =
+    T , φ₁ , φ₂ , evalSeq ρ∣V⇓unit ρ∣M⇓T#φ₁ , T,φ₂∈𝐺⟦B⟧c , φ₁+φ₂≤φ
+
+semanticForce : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n} {φ φ′ : Eff} {B : CompType}
+              → Γ ⊨v V ⦂ 𝑼 φ′ B
+              → φ′ ≤ φ
+                ----------------
+              → Γ ⊨c V ! ⦂ B # φ
+semanticForce Γ⊨V⦂𝑼φ′B φ′≤φ Γ⊨ρ
+  with Γ⊨V⦂𝑼φ′B Γ⊨ρ
+...  | W@(clos⦅ ρ ,⟪ M ⟫⦆) , V⇓W , T , φ₁ , φ₂ , M⇓T , T∈𝐺 , φ₁+φ₂≤φ′ =
+  T , φ₁ , φ₂ , evalForce V⇓W M⇓T , T∈𝐺 , ≤-trans φ₁+φ₂≤φ′ φ′≤φ
+
+semanticRet : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n} {A : ValType} {φ : Eff}
+            → Γ ⊨v V ⦂ A
+              -----------------------
+            → Γ ⊨c return V ⦂ 𝑭 A # φ
+semanticRet {φ = φ} Γ⊨V⦂A Γ⊨ρ
+  with Γ⊨V⦂A Γ⊨ρ
+...  |  W , ρ∣V⇓W , W∈𝐺⟦A⟧v =
+  return W , pure , φ , evalRet ρ∣V⇓W , W∈𝐺⟦A⟧v , subeff-lemma
+  where
+    subeff-lemma = ≡→≤ +-pure-idˡ
+
+semanticLetin : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {A : ValType} {φ₁ φ₂ φ : Eff}
+                  {N : Comp (suc n)} {B : CompType}
+              → Γ ⊨c M ⦂ 𝑭 A # φ₁
+              → Γ ∷ A ⊨c N ⦂ B # φ₂
+              → φ₁ + φ₂ ≤ φ
+                ---------------------
+              → Γ ⊨c $⇐ M ⋯ N ⦂ B # φ
+semanticLetin Γ⊨M⦂𝑭A#φ₁ Γ∷A⊨N⦂B#φ₂ φ₁+φ₂≤φ Γ⊨ρ
+  with Γ⊨M⦂𝑭A#φ₁ Γ⊨ρ
+...  | T′@(return W) , φ₁₁ , φ₁₂ , ρ∣M⇓T′#φ₁₁ , W∈𝐺⟦A⟧v , φ₁₁+φ₁₂≤φ₁
+  with Γ∷A⊨N⦂B#φ₂ (⊨-ext Γ⊨ρ W∈𝐺⟦A⟧v)
+...  | T , φ₂₁ , φ₂₂ , ρ∷W∣N⇓T#φ₂₁ , T,φ₂₂∈𝐺⟦B⟧c , φ₂₁+φ₂₂≤φ₂ =
+  T , φ₁₁ + φ₂₁ , φ₂₂ , evalLetin ρ∣M⇓T′#φ₁₁ ρ∷W∣N⇓T#φ₂₁ , T,φ₂₂∈𝐺⟦B⟧c ,
+    subeff-lemma
+  where
+    subeff-lemma =
+      ≤-trans
+        (≤-trans (≡→≤ +-assoc) (≤-+-compatibleʳ (≤-+-invertʳ φ₁₁+φ₁₂≤φ₁)))
+        (≤-trans (≤-+-compatibleˡ φ₂₁+φ₂₂≤φ₂) φ₁+φ₂≤φ)
+
+semanticTick : ∀ {n : ℕ} {Γ : Ctx n} {φ : Eff}
+             → tock ≤ φ
+               -----------------
+             → Γ ⊨c tick ⦂ 𝑭 𝟙 # φ
+semanticTick tock≤φ _ = return unit , tock , pure , evalTick , tt , subeff-lemma
+  where
+    subeff-lemma = ≤-trans (≡→≤ +-pure-idʳ) tock≤φ
+
+-- Fundamental lemma of logical relations
+
 mutual
   fundamental-lemma-val : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n}
                             {A : ValType}
                         → Γ ⊢v V ⦂ A
                         → Γ ⊨v V ⦂ A
-  fundamental-lemma-val (typeVar {m}) {ρ} Γ⊨ρ =
-    ρ m , evalVar {W = ρ m} , Γ⊨ρ m
-  fundamental-lemma-val typeUnit Γ⊨ρ =
-    unit , evalUnit , tt
-  fundamental-lemma-val (typeThunk {M} typM) {ρ} Γ⊨ρ =
-    clos⦅ ρ ,⟪ M ⟫⦆ , evalThunk , fundamental-lemma-comp typM Γ⊨ρ
+  fundamental-lemma-val typeVar = semanticVar
+  fundamental-lemma-val typeUnit = semanticUnit
+  fundamental-lemma-val (typeThunk Γ⊢⟪M⟫⦂A) {ρ} =
+    semanticThunk (fundamental-lemma-comp Γ⊢⟪M⟫⦂A)
 
   fundamental-lemma-comp : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {B : CompType}
                              {φ : Eff}
                          → Γ ⊢c M ⦂ B # φ
                          → Γ ⊨c M ⦂ B # φ
-  fundamental-lemma-comp {n} (typeAbs {A} {M} {B} {φ} typM) {ρ} Γ⊨ρ =
-    clos⦅ ρ ,ƛ M ⦆ , pure , φ , evalAbs , ih , subeff-lemma
-    where
-      subeff-lemma = ≡→≤ +-pure-idˡ
+  fundamental-lemma-comp (typeAbs Γ⊢M⦂B#φ) =
+    semanticAbs (fundamental-lemma-comp Γ⊢M⦂B#φ)
+  fundamental-lemma-comp (typeApp Γ⊢M⦂B#φ Γ⊢V⦂A) =
+    semanticApp (fundamental-lemma-comp Γ⊢M⦂B#φ) (fundamental-lemma-val Γ⊢V⦂A)
+  fundamental-lemma-comp (typeSequence Γ⊢V⦂𝟙 Γ⊢M⦂B#φ) =
+    semanticSequence
+      (fundamental-lemma-val Γ⊢V⦂𝟙)
+      (fundamental-lemma-comp Γ⊢M⦂B#φ)
+  fundamental-lemma-comp (typeForce Γ⊢V⦂𝑼φ′B φ′≤φ) =
+    semanticForce (fundamental-lemma-val Γ⊢V⦂𝑼φ′B) φ′≤φ
+  fundamental-lemma-comp (typeRet Γ⊢V⦂A) =
+    semanticRet (fundamental-lemma-val Γ⊢V⦂A)
+  fundamental-lemma-comp (typeLetin Γ⊢M⦂𝑭A#φ₁ Γ∷A⊢N⦂B#φ₂ φ₁+φ₂≤φ) =
+    semanticLetin
+      (fundamental-lemma-comp Γ⊢M⦂𝑭A#φ₁)
+      (fundamental-lemma-comp Γ∷A⊢N⦂B#φ₂)
+      φ₁+φ₂≤φ
+  fundamental-lemma-comp (typeTick tock≤φ) = semanticTick tock≤φ
 
-      ih : ∀ {W : ClosVal} → W ∈-𝐺⟦ A ⟧v → ρ ∷ᵨ W , M , φ ∈-𝐺⟦ B ⟧e
-      ih W∈𝐺 = fundamental-lemma-comp typM (⊨-ext Γ⊨ρ W∈𝐺)
-  fundamental-lemma-comp {n} (typeApp typM typV) Γ⊨ρ
-    with fundamental-lemma-comp typM Γ⊨ρ
-  ... | T′@(clos⦅ ρ′ ,ƛ M′ ⦆) , φ₁ , φ₂ , M⇓T′ , pf , Φ₁+Φ₂≤φ
-    with fundamental-lemma-val typV Γ⊨ρ
-  ...  | W , V⇓W , W∈𝐺
-    with pf W∈𝐺
-  ...  | T , ψ₁ , ψ₂ , T′⇓T , T∈𝐺 , ψ₁+ψ₂≤φ₂ =
-    T , φ₁ + ψ₁ , ψ₂ , evalApp M⇓T′ V⇓W T′⇓T , T∈𝐺 , subeff-lemma
-     where
-       subeff-lemma =
-         ≤-trans (≤-trans (≡→≤ +-assoc) (≤-+-compatibleˡ ψ₁+ψ₂≤φ₂)) Φ₁+Φ₂≤φ
-  fundamental-lemma-comp (typeSequence typV typM) Γ⊨ρ
-    with fundamental-lemma-val typV Γ⊨ρ
-  ...  | unit , V⇓unit , _
-    with fundamental-lemma-comp typM Γ⊨ρ
-  ...  | T , φ₁ , φ₂ , M⇓T , T∈𝐺 , φ₁+φ₂≤φ =
-    T , φ₁ , φ₂ , evalSeq V⇓unit M⇓T , T∈𝐺 , φ₁+φ₂≤φ
-  fundamental-lemma-comp (typeForce typV φ′≤φ) Γ⊨ρ
-    with fundamental-lemma-val typV Γ⊨ρ
-  ...  | W@(clos⦅ ρ ,⟪ M ⟫⦆) , V⇓W , T , φ₁ , φ₂ , M⇓T , T∈𝐺 , φ₁+φ₂≤φ′  =
-    T , φ₁ , φ₂ , evalForce V⇓W M⇓T , T∈𝐺 , ≤-trans φ₁+φ₂≤φ′ φ′≤φ
-  fundamental-lemma-comp (typeRet {φ = φ} typV) Γ⊨ρ
-    with fundamental-lemma-val typV Γ⊨ρ
-  ... | W , V⇓W , W∈𝐺 =
-    return W , pure , φ , evalRet V⇓W , W∈𝐺 , subeff-lemma
-    where
-      subeff-lemma = ≡→≤ +-pure-idˡ
-  fundamental-lemma-comp (typeLetin typM typN φ₁+φ₂≤φ) Γ⊨ρ
-    with fundamental-lemma-comp typM Γ⊨ρ
-  ...  | T′@(return W) , φ₁′ , φ₂′ , M⇓T′ , W∈𝐺 , φ₁′+φ₂′≤φ₁
-    with fundamental-lemma-comp typN (⊨-ext Γ⊨ρ W∈𝐺)
-  ...  | T , φ₁″ , φ₂″ , N⇓T , T∈𝐺 , φ₁″+φ₂″≤φ₂ =
-    T , φ₁′ + φ₁″ , φ₂″ , evalLetin M⇓T′ N⇓T , T∈𝐺 , subeff-lemma
-    where
-      subeff-lemma =
-        ≤-trans
-          (≤-trans (≡→≤ +-assoc) (≤-+-compatibleʳ (≤-+-invertʳ φ₁′+φ₂′≤φ₁)))
-        (≤-trans (≤-+-compatibleˡ φ₁″+φ₂″≤φ₂) φ₁+φ₂≤φ)
-  fundamental-lemma-comp (typeTick tock≤φ) Γ⊨ρ =
-    return unit , tock , pure , evalTick , tt , subeff-lemma
-    where
-      subeff-lemma = ≤-trans (≡→≤ +-pure-idʳ) tock≤φ
+-- Effect soundness
 
 effect-soundness : ∀ {M : Comp zero} {B : CompType} {φ : Eff}
                  → ∅ ⊢c M ⦂ B # φ
                  → ∃[ T ] ∃[ φ′ ] φ′ ≤ φ × ∅ᵨ ∣ M ⇓c T # φ′
 effect-soundness ∅⊢cM⦂B#φ
   with fundamental-lemma-comp ∅⊢cM⦂B#φ (λ ())
-...  | T , φ′ , _ , ∅ᵨ∣M⇓cT#φ′ , _ , φ′+φ″≤φ = T , φ′ , subeff-lemma ,  ∅ᵨ∣M⇓cT#φ′
+...  | T , φ′ , _ , ∅ᵨ∣M⇓cT#φ′ , _ , φ′+φ″≤φ =
+  T , φ′ , subeff-lemma ,  ∅ᵨ∣M⇓cT#φ′
   where
     subeff-lemma = ≤-+-invertʳ φ′+φ″≤φ
