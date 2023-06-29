@@ -1,7 +1,7 @@
 open import Data.Empty using (⊥)
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
-open import Data.Product using (_×_; ∃; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
+open import Data.Product using (_×_; ∃; ∃-syntax; _,_)
 open import Data.Unit using (⊤; tt)
 
 open import Effects
@@ -263,61 +263,72 @@ mutual
                             {A : ValType}
                         → Γ ⊢v V ⦂ A
                         → Γ ⊨v V ⦂ A
-  fundamental-lemma-val = {!!}
-{-
   fundamental-lemma-val (typeVar {m}) {ρ} Γ⊨ρ =
-    ⟨ ρ m , ⟨ evalVar {W = ρ m} , Γ⊨ρ m ⟩ ⟩
+    ρ m , evalVar {W = ρ m} , Γ⊨ρ m
   fundamental-lemma-val typeUnit Γ⊨ρ =
-    ⟨ unit , ⟨ evalUnit , tt ⟩ ⟩
-  fundamental-lemma-val (typeThunk {M} Γ⊢cM⦂B) {ρ} Γ⊨ρ =
-    ⟨ clos⦅ ρ ,⟪ M ⟫⦆ , ⟨ evalThunk , fundamental-lemma-comp Γ⊢cM⦂B Γ⊨ρ ⟩ ⟩
--}
+    unit , evalUnit , tt
+  fundamental-lemma-val (typeThunk {M} typM) {ρ} Γ⊨ρ =
+    clos⦅ ρ ,⟪ M ⟫⦆ , evalThunk , fundamental-lemma-comp typM Γ⊨ρ
 
   fundamental-lemma-comp : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {B : CompType}
                              {φ : Eff}
                          → Γ ⊢c M ⦂ B # φ
                          → Γ ⊨c M ⦂ B # φ
-  fundamental-lemma-comp = {!!}
-{-
-  fundamental-lemma-comp {n} (typeAbs {A} {M} {B} Γ∷A⊢cM⦂B) {ρ} Γ⊨ρ =
-    ⟨ clos⦅ ρ ,ƛ M ⦆ , ⟨ evalAbs , ih ⟩ ⟩
+  fundamental-lemma-comp {n} (typeAbs {A} {M} {B} {φ} typM) {ρ} Γ⊨ρ =
+    clos⦅ ρ ,ƛ M ⦆ , pure , φ , evalAbs , ih , subeff-lemma
     where
-      ih : ∀ {W : ClosVal} → W ∈-𝐺⟦ A ⟧v → ρ ∷ᵨ W , M ∈-𝐺⟦ B ⟧e
-      ih pf = fundamental-lemma-comp Γ∷A⊢cM⦂B (⊨-ext Γ⊨ρ pf)
-  fundamental-lemma-comp {n} (typeApp Γ⊢cM⦂B Γ⊢vV⦂A) Γ⊨ρ
-    with fundamental-lemma-val Γ⊢vV⦂A Γ⊨ρ
-  ...  | ⟨ W , ⟨ ρ∣V⇓vW , W∈𝐺⟦A⟧v ⟩ ⟩
-    with fundamental-lemma-comp Γ⊢cM⦂B Γ⊨ρ
-  ... | ⟨ T′@(clos⦅ ρ′ ,ƛ M′ ⦆) , ⟨ ρ∣M⇓cT′ , pf ⟩ ⟩ =
-    let ⟨ T , ⟨ ρ′∷ᵨW∣M′⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩ = pf W∈𝐺⟦A⟧v in
-    ⟨ T , ⟨ evalApp ρ∣M⇓cT′ ρ∣V⇓vW ρ′∷ᵨW∣M′⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩
-  fundamental-lemma-comp (typeSequence Γ⊢vV⦂𝟙 Γ⊢cM⦂B) Γ⊨ρ
-    with fundamental-lemma-val Γ⊢vV⦂𝟙 Γ⊨ρ
-  ...  | ⟨ unit , ⟨ ρ∣V⇓vunit , _ ⟩ ⟩
-    with fundamental-lemma-comp Γ⊢cM⦂B Γ⊨ρ
-  ...  | ⟨ T , ⟨ ρ∣M⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩ =
-    ⟨ T , ⟨ evalSeq ρ∣V⇓vunit ρ∣M⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩
-  fundamental-lemma-comp (typeForce Γ⊢vV⦂𝑼B) Γ⊨ρ
-    with fundamental-lemma-val Γ⊢vV⦂𝑼B Γ⊨ρ
-  ...  | ⟨ W@(clos⦅ ρ ,⟪ M ⟫⦆) , ⟨ ρ∣V⇓vW , ⟨ T , ⟨ ρ|M⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩ ⟩ ⟩ =
-    ⟨ T , ⟨ evalForce ρ∣V⇓vW ρ|M⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩
-  fundamental-lemma-comp (typeRet Γ⊢vV⦂A) Γ⊨ρ
-    with fundamental-lemma-val Γ⊢vV⦂A Γ⊨ρ
-  ... | ⟨ W , ⟨ ρ∣V⇓vW , W∈𝐺⟦A⟧v ⟩ ⟩ =
-    ⟨ return W , ⟨ evalRet ρ∣V⇓vW , W∈𝐺⟦A⟧v ⟩ ⟩
-  fundamental-lemma-comp (typeLetin Γ⊢cM⦂𝑭A Γ∷A⊢cN⦂B) Γ⊨ρ
-    with fundamental-lemma-comp Γ⊢cM⦂𝑭A Γ⊨ρ
-  ...  | ⟨ T′@(return W) , ⟨ ρ∣M⇓cT′ , W∈𝐺⟦A⟧v ⟩ ⟩
-    with fundamental-lemma-comp Γ∷A⊢cN⦂B (⊨-ext Γ⊨ρ W∈𝐺⟦A⟧v)
-  ...  | ⟨ T , ⟨ ρ∷W∣N⇓cT , T∈𝐺⟦B⟧c ⟩ ⟩ =
-    ⟨ T , ⟨ (evalLetin ρ∣M⇓cT′ ρ∷W∣N⇓cT) , T∈𝐺⟦B⟧c ⟩ ⟩
+      subeff-lemma = ≡→≤ +-pure-idˡ
 
--}
+      ih : ∀ {W : ClosVal} → W ∈-𝐺⟦ A ⟧v → ρ ∷ᵨ W , M , φ ∈-𝐺⟦ B ⟧e
+      ih W∈𝐺 = fundamental-lemma-comp typM (⊨-ext Γ⊨ρ W∈𝐺)
+  fundamental-lemma-comp {n} (typeApp typM typV) Γ⊨ρ
+    with fundamental-lemma-comp typM Γ⊨ρ
+  ... | T′@(clos⦅ ρ′ ,ƛ M′ ⦆) , φ₁ , φ₂ , M⇓T′ , pf , Φ₁+Φ₂≤φ
+    with fundamental-lemma-val typV Γ⊨ρ
+  ...  | W , V⇓W , W∈𝐺
+    with pf W∈𝐺
+  ...  | T , ψ₁ , ψ₂ , T′⇓T , T∈𝐺 , ψ₁+ψ₂≤φ₂ =
+    T , φ₁ + ψ₁ , ψ₂ , evalApp M⇓T′ V⇓W T′⇓T , T∈𝐺 , subeff-lemma
+     where
+       subeff-lemma =
+         ≤-trans (≤-trans (≡→≤ +-assoc) (≤-+-compatibleˡ ψ₁+ψ₂≤φ₂)) Φ₁+Φ₂≤φ
+  fundamental-lemma-comp (typeSequence typV typM) Γ⊨ρ
+    with fundamental-lemma-val typV Γ⊨ρ
+  ...  | unit , V⇓unit , _
+    with fundamental-lemma-comp typM Γ⊨ρ
+  ...  | T , φ₁ , φ₂ , M⇓T , T∈𝐺 , φ₁+φ₂≤φ =
+    T , φ₁ , φ₂ , evalSeq V⇓unit M⇓T , T∈𝐺 , φ₁+φ₂≤φ
+  fundamental-lemma-comp (typeForce typV φ′≤φ) Γ⊨ρ
+    with fundamental-lemma-val typV Γ⊨ρ
+  ...  | W@(clos⦅ ρ ,⟪ M ⟫⦆) , V⇓W , T , φ₁ , φ₂ , M⇓T , T∈𝐺 , φ₁+φ₂≤φ′  =
+    T , φ₁ , φ₂ , evalForce V⇓W M⇓T , T∈𝐺 , ≤-trans φ₁+φ₂≤φ′ φ′≤φ
+  fundamental-lemma-comp (typeRet {φ = φ} typV) Γ⊨ρ
+    with fundamental-lemma-val typV Γ⊨ρ
+  ... | W , V⇓W , W∈𝐺 =
+    return W , pure , φ , evalRet V⇓W , W∈𝐺 , subeff-lemma
+    where
+      subeff-lemma = ≡→≤ +-pure-idˡ
+  fundamental-lemma-comp (typeLetin typM typN φ₁+φ₂≤φ) Γ⊨ρ
+    with fundamental-lemma-comp typM Γ⊨ρ
+  ...  | T′@(return W) , φ₁′ , φ₂′ , M⇓T′ , W∈𝐺 , φ₁′+φ₂′≤φ₁
+    with fundamental-lemma-comp typN (⊨-ext Γ⊨ρ W∈𝐺)
+  ...  | T , φ₁″ , φ₂″ , N⇓T , T∈𝐺 , φ₁″+φ₂″≤φ₂ =
+    T , φ₁′ + φ₁″ , φ₂″ , evalLetin M⇓T′ N⇓T , T∈𝐺 , subeff-lemma
+    where
+      subeff-lemma =
+        ≤-trans
+          (≤-trans (≡→≤ +-assoc) (≤-+-compatibleʳ (≤-+-invertʳ φ₁′+φ₂′≤φ₁)))
+        (≤-trans (≤-+-compatibleˡ φ₁″+φ₂″≤φ₂) φ₁+φ₂≤φ)
+  fundamental-lemma-comp (typeTick tock≤φ) Γ⊨ρ =
+    return unit , tock , pure , evalTick , tt , subeff-lemma
+    where
+      subeff-lemma = ≤-trans (≡→≤ +-pure-idʳ) tock≤φ
 
 effect-soundness : ∀ {M : Comp zero} {B : CompType} {φ : Eff}
                  → ∅ ⊢c M ⦂ B # φ
                  → ∃[ T ] ∃[ φ′ ] φ′ ≤ φ × ∅ᵨ ∣ M ⇓c T # φ′
 effect-soundness ∅⊢cM⦂B#φ
   with fundamental-lemma-comp ∅⊢cM⦂B#φ (λ ())
-...  | ⟨ T , ⟨ φ′ , ⟨ _ , ⟨ ∅ᵨ∣M⇓cT#φ′ , ⟨ _ , φ′+φ″≤φ ⟩ ⟩ ⟩ ⟩ ⟩ =
-  ⟨ T , ⟨ φ′ , ⟨ ≤-+-invertʳ φ′+φ″≤φ ,  ∅ᵨ∣M⇓cT#φ′ ⟩ ⟩ ⟩
+...  | T , φ′ , _ , ∅ᵨ∣M⇓cT#φ′ , _ , φ′+φ″≤φ = T , φ′ , subeff-lemma ,  ∅ᵨ∣M⇓cT#φ′
+  where
+    subeff-lemma = ≤-+-invertʳ φ′+φ″≤φ

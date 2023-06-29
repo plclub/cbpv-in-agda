@@ -1,5 +1,5 @@
 import Relation.Binary.PropositionalEquality as Eq
-open Eq using (_≡_)
+open Eq using (_≡_; refl)
 
 module Effects where
 
@@ -60,3 +60,8 @@ module Effects where
                 → φ₁ + φ ≤ φ₂
                 → φ₁ ≤ φ₂
     ≤-+-invertʳ pf = ≤-trans ≤-+ʳ pf
+
+    ≡→≤ : ∀ {φ₁ φ₂ : Eff}
+        → φ₁ ≡ φ₂
+        → φ₁ ≤ φ₂
+    ≡→≤ refl = ≤-refl
