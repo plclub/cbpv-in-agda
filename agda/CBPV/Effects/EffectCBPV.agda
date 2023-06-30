@@ -6,7 +6,7 @@ open import Data.Unit using (⊤; tt)
 
 open import Effects
 
-module EffectCBPV (E : Effect) where
+module CBPV.Effectful.EffectCBPV (E : Effect) where
 
 open Effect E
 open Properties E
