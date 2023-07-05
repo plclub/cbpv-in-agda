@@ -1,7 +1,6 @@
 open import Data.Fin using (suc; zero)
 open import Data.Nat using (ℕ)
 
-open import CBN.Monadic.Renaming renaming (ext to cbn-ext)
 open import CBN.Monadic.Terms
 open import CBPV.Effects.Renaming
 open import CBPV.Effects.Terms
@@ -47,4 +46,12 @@ instance
       $⇐ ⟦ e₂ ⟧ [ suc ]c [ suc ]c ⋯
       ♯ zero !
     ⟫
-  Translation.⟦ ⟦Term⟧ ⟧ tick = {!!}
+
+  -- 𝑭 𝑼φ 𝑭 𝑼⊥ 𝑭 𝟙
+  Translation.⟦ ⟦Term⟧ ⟧ tick = return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+
+translation-preservation : ∀ {n : ℕ} {Γ : CBN.Ctx n} {e : Term n} {τ : Type}
+                         → Γ ⊢ e ⦂ τ
+                           --------------------------
+                         → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ ⟦ τ ⟧ # pure
+translation-preservation = {!!}

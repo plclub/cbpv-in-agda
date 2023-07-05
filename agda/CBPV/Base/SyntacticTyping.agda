@@ -1,6 +1,9 @@
+import Relation.Binary.PropositionalEquality as Eq
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
+open Eq using (_≡_; refl)
 
+open import CBPV.Base.Renaming
 open import CBPV.Base.Terms
 open import CBPV.Base.Types
 
@@ -68,3 +71,46 @@ mutual
 
 infix 4 _⊢v_⦂_
 infix 4 _⊢c_⦂_
+
+mutual
+  val-typepres-renaming : ∀ {n n′ : ℕ} {Γ : Ctx n} {V : Val n′} {A : ValType}
+                            {ρ : Ren n n′} {Δ : Ctx n′}
+                         → Δ ⊢v V ⦂ A
+                         → (∀ (m : Fin n′) → Δ m ≡ Γ (ρ m))
+                           --------------------------------
+                         → Γ ⊢v V [ ρ ]v ⦂ A
+  val-typepres-renaming (typeVar {m}) pf rewrite pf m = typeVar
+  val-typepres-renaming typeUnit _ = typeUnit
+  val-typepres-renaming (typeThunk Δ⊢M⦂B) pf =
+    typeThunk (comp-typepres-renaming Δ⊢M⦂B pf)
+
+  comp-typepres-renaming : ∀ {n n′ : ℕ} {Γ : Ctx n} {M : Comp n′} {B : CompType}
+                             {ρ : Ren n n′} {Δ : Ctx n′}
+                         → Δ ⊢c M ⦂ B
+                         → (∀ (m : Fin n′) → Δ m ≡ Γ (ρ m))
+                           --------------------------------
+                         → Γ ⊢c M [ ρ ]c ⦂ B
+  comp-typepres-renaming (typeAbs Δ⊢M⦂A⇒B) pf =
+    typeAbs (comp-typepres-renaming Δ⊢M⦂A⇒B ext-pf)
+    where
+      ext-pf = λ where
+                   zero    → refl
+                   (suc m) → pf m
+  comp-typepres-renaming (typeApp Δ⊢M⦂B Δ⊢V⦂A) pf =
+    typeApp (comp-typepres-renaming Δ⊢M⦂B pf) (val-typepres-renaming Δ⊢V⦂A pf)
+  comp-typepres-renaming (typeSequence Δ⊢V⦂𝟙 Δ⊢M⦂B) pf =
+    typeSequence
+      (val-typepres-renaming Δ⊢V⦂𝟙 pf)
+      (comp-typepres-renaming Δ⊢M⦂B pf)
+  comp-typepres-renaming (typeForce Δ⊢V⦂𝑼′B) pf =
+    typeForce (val-typepres-renaming Δ⊢V⦂𝑼′B pf)
+  comp-typepres-renaming (typeRet Δ⊢V⦂A) pf =
+    typeRet (val-typepres-renaming Δ⊢V⦂A pf)
+  comp-typepres-renaming (typeLetin Δ⊢M⦂𝑭A Δ∷A⊢N⦂B) pf =
+    typeLetin
+      (comp-typepres-renaming Δ⊢M⦂𝑭A pf)
+      (comp-typepres-renaming Δ∷A⊢N⦂B ext-pf)
+    where
+      ext-pf = λ where
+                   zero    → refl
+                   (suc m) → pf m

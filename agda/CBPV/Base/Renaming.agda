@@ -1,9 +1,9 @@
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc)
 
-open import CBPV.Effects.Terms
+open import CBPV.Base.Terms
 
-module CBPV.Effects.Renaming  where
+module CBPV.Base.Renaming  where
 
 Ren : ℕ → ℕ → Set
 Ren n n′ = (m : Fin n′) → Fin n
@@ -19,7 +19,7 @@ mutual
            --------
          → Val n
   unit [ _ ]v    = unit
-  ♯ m [ ρ ]v     = ♯ ρ m
+  # m [ ρ ]v     = # ρ m
   ⟪ M ⟫ [ ρ ]v   = ⟪ M [ ρ ]c ⟫
 
   _[_]c : ∀ {n n′ : ℕ}
@@ -32,7 +32,6 @@ mutual
   (V » M) [ ρ ]c = V [ ρ ]v » M [ ρ ]c
   (return V) [ ρ ]c = return V [ ρ ]v
   ($⇐ M ⋯ N) [ ρ ]c = $⇐ M [ ρ ]c ⋯ N [ ext ρ ]c
-  tick [ _ ]c = tick
   (V !) [ ρ ]c = V [ ρ ]v !
 
 infix 8 _[_]v

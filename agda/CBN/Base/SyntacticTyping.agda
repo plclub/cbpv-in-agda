@@ -1,13 +1,10 @@
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 
-open import CBN.Monadic.Terms
-open import Effects
+open import CBN.Base.Terms
+open import CBN.Base.Types
 
-module CBN.Monadic.SyntacticTyping (E : Effect) where
-
-open import CBN.Monadic.Types E
-open Effect E
+module CBN.Base.SyntacticTyping where
 
 Ctx : ℕ → Set
 Ctx n = Fin n → Type
@@ -46,22 +43,5 @@ mutual
             → Γ ⊢ e₂ ⦂ τ
               ---------------
             → Γ ⊢ e₁ » e₂ ⦂ τ
-
-    typeReturn : ∀ {e : Term n} {τ : Type} {φ : Eff}
-               → Γ ⊢ e ⦂ τ
-                 --------------------
-               → Γ ⊢ return e ⦂ 𝑻 φ τ
-
-    typeBind : ∀ {e₁ e₂ : Term n} {φ₁ φ₂ φ : Eff} {τ τ′ : Type}
-             → Γ ⊢ e₁ ⦂ 𝑻 φ₁ τ′
-             → Γ ⊢ e₂ ⦂ 𝑻 φ₂ τ
-             → φ₁ + φ₂ ≤ φ
-               -----------------------
-             → Γ ⊢ $⇐ e₁ ⋯ e₂ ⦂ 𝑻 φ τ
-
-    typeTick : ∀ {φ : Eff}
-             → tock ≤ φ
-               ----------------
-             → Γ ⊢ tick ⦂ 𝑻 φ 𝟙
 
 infix 4 _⊢_⦂_
