@@ -1,5 +1,9 @@
-open import Data.Fin using (suc; zero)
-open import Data.Nat using (ℕ)
+import Relation.Binary.PropositionalEquality as Eq
+open import Axiom.Extensionality.Propositional using (Extensionality)
+open import Data.Fin using (Fin; suc; zero)
+open import Data.Nat using (ℕ; suc)
+open import Level using (0ℓ)
+open Eq using (_≡_; refl; trans; sym)
 
 open import CBN.Monadic.Terms
 open import CBPV.Effects.Renaming
@@ -8,12 +12,56 @@ open import Effects
 
 module CBN.Monadic.Translation (E : Effect) where
 
-import CBN.Monadic.SyntacticTyping E as CBN
+import CBPV.Effects.SyntacticTyping E as CBPV
+open import CBN.Monadic.SyntacticTyping E as CBN
 open import CBN.Monadic.Types E
 open import CBPV.Effects.Types E
-open import CBPV.Effects.SyntacticTyping E
-open CBN hiding (Ctx)
+open CBPV hiding (Ctx; _∷_)
 open Effect E
+open Effects.Properties E
+
+postulate
+  extensionality : Extensionality 0ℓ 0ℓ
+
+data _↦_ {n : ℕ} : Term n → Comp n → Set where
+  transVar : ∀ {m : Fin n}
+             ------------
+           → # m ↦ ♯ m !
+
+  transUnit : unit ↦ return unit
+
+  transAbs : ∀ {e : Term (suc n)} {M : Comp (suc n)}
+           → e ↦ M
+             ---------
+           → ƛ e ↦ ƛ M
+
+  transApp : ∀ {e1 e2 : Term n} {M N : Comp n}
+           → e1 ↦ M
+           → e2 ↦ N
+             --------------------
+           → e1 · e2 ↦ M · ⟪ N ⟫
+
+  transSeq : ∀ {e1 e2 : Term n} {M N : Comp n}
+           → e1 ↦ M
+           → e2 ↦ N
+             ---------------------------------------
+           → e1 » e2 ↦ $⇐ M ⋯ (♯ zero) » N [ suc ]c
+
+  transReturn : ∀ {e : Term n} {M : Comp n}
+              → e ↦ M
+                ----------------------------------
+              → return e ↦ return ⟪ return ⟪ M ⟫ ⟫
+
+  transBind : ∀ {e₁ : Term n} {M : Comp n} {e₂ : Term (suc n)}
+                {N : Comp (suc n)}
+            → e₁ ↦ M
+            → e₂ ↦ N
+              ------------------------------------------------------------
+            → $⇐ e₁ ⋯ e₂ ↦ return ⟪ $⇐ $⇐ M ⋯ ♯ zero ! ⋯ $⇐ N ⋯ ♯ zero ! ⟫
+
+  transTick : tick ↦ return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+
+infix 3 _↦_
 
 record Translation (A B : Set) : Set where
   field
@@ -27,7 +75,7 @@ instance
   Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ⇒ τ₂) = 𝑼 pure ⟦ τ₁ ⟧ ⇒ ⟦ τ₂ ⟧
   Translation.⟦ ⟦Type⟧ ⟧ (𝑻 φ τ) = 𝑭 (𝑼 φ (𝑭 (𝑼 pure ⟦ τ ⟧)))
 
-  ⟦Ctx⟧ : ∀ {n : ℕ} → Translation (CBN.Ctx n) (Ctx n)
+  ⟦Ctx⟧ : ∀ {n : ℕ} → Translation (Ctx n) (CBPV.Ctx n)
   Translation.⟦ ⟦Ctx⟧ ⟧ Γ m = 𝑼 pure ⟦ Γ m ⟧
 
   ⟦Term⟧ : ∀ {n : ℕ} → Translation (Term n) (Comp n)
@@ -41,17 +89,79 @@ instance
   Translation.⟦ ⟦Term⟧ ⟧ (return e) = return ⟪ return ⟪ ⟦ e ⟧ ⟫ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ ($⇐ e₁ ⋯ e₂) =
     return ⟪
-      $⇐ ⟦ e₁ ⟧ ⋯
-      $⇐ ♯ zero ! ⋯
-      $⇐ ⟦ e₂ ⟧ [ suc ]c [ suc ]c ⋯
+      $⇐ $⇐ ⟦ e₁ ⟧ ⋯ ♯ zero ! ⋯
+      $⇐ ⟦ e₂ ⟧ ⋯
       ♯ zero !
     ⟫
-
-  -- 𝑭 𝑼φ 𝑭 𝑼⊥ 𝑭 𝟙
   Translation.⟦ ⟦Term⟧ ⟧ tick = return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+
+⟦Γ∷τ⟧-expand : ∀ {n : ℕ} {Γ : Ctx n} {τ : Type}
+               → ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 pure ⟦ τ ⟧
+⟦Γ∷τ⟧-expand = extensionality λ where
+                                  zero    → refl
+                                  (suc m) → refl
+
+↦-preserves : ∀ {n : ℕ} {e : Term n} {M : Comp n}
+                    {Γ : Ctx n} {τ : Type}
+                → e ↦ M
+                → Γ ⊢ e ⦂ τ
+                  ------------------
+                → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧ # pure
+↦-preserves transVar typeVar = typeForce typeVar pure-≤
+↦-preserves transUnit typeUnit = typeRet typeUnit
+↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} Γ∷τ⊢e⦂τ′)
+  with ↦-preserves e↦M Γ∷τ⊢e⦂τ′
+...  | ih
+  rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ}) = typeAbs ih
+↦-preserves (transApp e₁↦M e₂↦N) (typeApp Γ⊢e₁⦂τ′⇒τ Γ⊢e₂⦂τ′) =
+  typeApp
+    (↦-preserves e₁↦M Γ⊢e₁⦂τ′⇒τ)
+    (typeThunk (↦-preserves e₂↦N Γ⊢e₂⦂τ′))
+↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq Γ⊢e₁⦂𝟙 Γ⊢e₂⦂τ) =
+  typeLetin
+    (↦-preserves e₁↦M Γ⊢e₁⦂𝟙)
+    (typeSequence
+      typeVar
+      (comp-typepres-renaming (↦-preserves e₂↦N Γ⊢e₂⦂τ) λ{_ → refl}))
+    (≡→≤ +-pure-idʳ)
+↦-preserves (transReturn e↦M) (typeReturn Γ⊢e⦂τ) =
+  typeRet (typeThunk (typeRet (typeThunk (↦-preserves e↦M Γ⊢e⦂τ))))
+↦-preserves {Γ = Γ} (transBind e₁↦M e₂↦N) (typeBind {τ′ = τ′} Γ⊢e₁⦂𝑻φ₁τ′ Γ∷τ′⊢e₂⦂𝑻φ₂τ φ₁+φ₂≤φ)
+  with ↦-preserves e₂↦N Γ∷τ′⊢e₂⦂𝑻φ₂τ
+...  | ih
+  rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ′}) =
+  typeRet
+    (typeThunk
+      (typeLetin
+        (typeLetin
+          (↦-preserves e₁↦M Γ⊢e₁⦂𝑻φ₁τ′)
+          (typeForce typeVar ≤-refl)
+          (≡→≤ +-pure-idˡ))
+        (typeLetin
+          ih
+          (typeForce typeVar ≤-refl)
+          (≡→≤ +-pure-idˡ))
+        φ₁+φ₂≤φ))
+↦-preserves transTick (typeTick tock≤φ) =
+  typeRet
+    (typeThunk
+      (typeLetin
+        (typeTick tock≤φ)
+        (typeRet (typeThunk (typeRet typeVar)))
+        (≡→≤ +-pure-idʳ)))
+
+e↦⟦e⟧ : ∀ {n : ℕ} {e : Term n} → e ↦ ⟦ e ⟧
+e↦⟦e⟧ {e = # x} = transVar
+e↦⟦e⟧ {e = unit} = transUnit
+e↦⟦e⟧ {e = ƛ e} = transAbs e↦⟦e⟧
+e↦⟦e⟧ {e = e₁ · e₂} = transApp e↦⟦e⟧ e↦⟦e⟧
+e↦⟦e⟧ {e = e₁ » e₂} = transSeq e↦⟦e⟧ e↦⟦e⟧
+e↦⟦e⟧ {e = return e} = transReturn e↦⟦e⟧
+e↦⟦e⟧ {e = $⇐ e₁ ⋯ e₂} = transBind e↦⟦e⟧ e↦⟦e⟧
+e↦⟦e⟧ {e = tick} = transTick
 
 translation-preservation : ∀ {n : ℕ} {Γ : CBN.Ctx n} {e : Term n} {τ : Type}
                          → Γ ⊢ e ⦂ τ
                            --------------------------
                          → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ ⟦ τ ⟧ # pure
-translation-preservation = {!!}
+translation-preservation = ↦-preserves e↦⟦e⟧

@@ -1,8 +1,8 @@
 import Relation.Binary.PropositionalEquality as Eq
-open import Level using (0ℓ)
 open import Axiom.Extensionality.Propositional using (Extensionality)
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc)
+open import Level using (0ℓ)
 open Eq using (_≡_; refl)
 
 import CBPV.Base.SyntacticTyping as CBPV
@@ -40,7 +40,7 @@ data _↦_ {n : ℕ} : Term n → Comp n → Set where
   transSeq : ∀ {e1 e2 : Term n} {M N : Comp n}
            → e1 ↦ M
            → e2 ↦ N
-             -----------------------------------------------
+             ---------------------------------------
            → e1 » e2 ↦ $⇐ M ⋯ (# zero) » N [ suc ]c
 
 infix 3 _↦_

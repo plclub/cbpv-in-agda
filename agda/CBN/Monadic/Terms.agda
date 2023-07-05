@@ -10,7 +10,7 @@ data Term (n : ℕ) : Set where
   _·_ : Term n → Term n → Term n
   _»_ : Term n → Term n → Term n
   return_ : Term n → Term n
-  $⇐_⋯_ : Term n → Term n → Term n
+  $⇐_⋯_ : Term n → Term (suc n) → Term n
   tick : Term n
 
 infix 5 ƛ_
