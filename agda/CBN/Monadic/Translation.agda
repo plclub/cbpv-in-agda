@@ -56,7 +56,7 @@ data _↦_ {n : ℕ} : Term n → Comp n → Set where
                 {N : Comp (suc n)}
             → e₁ ↦ M
             → e₂ ↦ N
-              ------------------------------------------------------------
+              ---------------------------------------------------------------
             → $⇐ e₁ ⋯ e₂ ↦ return ⟪ $⇐ $⇐ M ⋯ ♯ zero ! ⋯ $⇐ N ⋯ ♯ zero ! ⟫
 
   transTick : tick ↦ return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
@@ -89,9 +89,10 @@ instance
   Translation.⟦ ⟦Term⟧ ⟧ (return e) = return ⟪ return ⟪ ⟦ e ⟧ ⟫ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ ($⇐ e₁ ⋯ e₂) =
     return ⟪
-      $⇐ $⇐ ⟦ e₁ ⟧ ⋯ ♯ zero ! ⋯
-      $⇐ ⟦ e₂ ⟧ ⋯
-      ♯ zero !
+      $⇐
+        $⇐ ⟦ e₁ ⟧ ⋯
+        ♯ zero !
+      ⋯ $⇐ ⟦ e₂ ⟧ ⋯ ♯ zero !
     ⟫
   Translation.⟦ ⟦Term⟧ ⟧ tick = return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
 
@@ -103,42 +104,45 @@ instance
 
 ↦-preserves : ∀ {n : ℕ} {e : Term n} {M : Comp n}
                     {Γ : Ctx n} {τ : Type}
-                → e ↦ M
-                → Γ ⊢ e ⦂ τ
-                  ------------------
-                → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧ # pure
+            → e ↦ M
+            → Γ ⊢ e ⦂ τ
+              -------------------------
+            → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧ # pure
 ↦-preserves transVar typeVar = typeForce typeVar pure-≤
 ↦-preserves transUnit typeUnit = typeRet typeUnit
 ↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} Γ∷τ⊢e⦂τ′)
   with ↦-preserves e↦M Γ∷τ⊢e⦂τ′
-...  | ih
-  rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ}) = typeAbs ih
-↦-preserves (transApp e₁↦M e₂↦N) (typeApp Γ⊢e₁⦂τ′⇒τ Γ⊢e₂⦂τ′) =
-  typeApp
-    (↦-preserves e₁↦M Γ⊢e₁⦂τ′⇒τ)
-    (typeThunk (↦-preserves e₂↦N Γ⊢e₂⦂τ′))
-↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq Γ⊢e₁⦂𝟙 Γ⊢e₂⦂τ) =
+...  | ⟦Γ∷τ⟧⊢M⦂⟦τ′⟧
+  rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ} = typeAbs ⟦Γ∷τ⟧⊢M⦂⟦τ′⟧
+↦-preserves (transApp e₁↦M e₂↦N) (typeApp Γ⊢e₁⦂τ′⇒τ Γ⊢e₂⦂τ′)
+  with ↦-preserves e₁↦M Γ⊢e₁⦂τ′⇒τ | ↦-preserves e₂↦N Γ⊢e₂⦂τ′
+...  | ⟦Γ⟧⊢M⦂⟦τ′⇒τ⟧               | ⟦Γ⟧⊢N⦂τ′                 =
+  typeApp ⟦Γ⟧⊢M⦂⟦τ′⇒τ⟧ (typeThunk ⟦Γ⟧⊢N⦂τ′)
+↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq Γ⊢e₁⦂𝟙 Γ⊢e₂⦂τ)
+  with ↦-preserves e₁↦M Γ⊢e₁⦂𝟙 | ↦-preserves e₂↦N Γ⊢e₂⦂τ
+...  | ⟦Γ⟧⊢M⦂⟦𝟙⟧               | ⟦Γ⟧⊢e₂⦂⟦τ⟧               =
   typeLetin
-    (↦-preserves e₁↦M Γ⊢e₁⦂𝟙)
-    (typeSequence
-      typeVar
-      (comp-typepres-renaming (↦-preserves e₂↦N Γ⊢e₂⦂τ) λ{_ → refl}))
+    ⟦Γ⟧⊢M⦂⟦𝟙⟧
+    (typeSequence typeVar (comp-typepres-renaming ⟦Γ⟧⊢e₂⦂⟦τ⟧ λ{_ → refl}))
     (≡→≤ +-pure-idʳ)
-↦-preserves (transReturn e↦M) (typeReturn Γ⊢e⦂τ) =
-  typeRet (typeThunk (typeRet (typeThunk (↦-preserves e↦M Γ⊢e⦂τ))))
-↦-preserves {Γ = Γ} (transBind e₁↦M e₂↦N) (typeBind {τ′ = τ′} Γ⊢e₁⦂𝑻φ₁τ′ Γ∷τ′⊢e₂⦂𝑻φ₂τ φ₁+φ₂≤φ)
-  with ↦-preserves e₂↦N Γ∷τ′⊢e₂⦂𝑻φ₂τ
-...  | ih
-  rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ′}) =
+↦-preserves (transReturn e↦M) (typeReturn Γ⊢e⦂τ)
+  with ↦-preserves e↦M Γ⊢e⦂τ
+...  | ⟦Γ⟧⊢M⦂⟦τ⟧             =
+  typeRet (typeThunk (typeRet (typeThunk ⟦Γ⟧⊢M⦂⟦τ⟧)))
+↦-preserves {Γ = Γ} (transBind e₁↦M e₂↦N) (typeBind {τ′ = τ′} Γ⊢e₁⦂𝑻φ₁τ′
+    Γ∷τ′⊢e₂⦂𝑻φ₂τ φ₁+φ₂≤φ)
+  with ↦-preserves e₁↦M Γ⊢e₁⦂𝑻φ₁τ′ | ↦-preserves e₂↦N Γ∷τ′⊢e₂⦂𝑻φ₂τ
+...  | ⟦Γ⟧⊢e₁⦂⟦𝑻φ₁τ′⟧              | ⟦Γ∷τ′⟧⊢e₂⦂⟦𝑻φ₂τ⟧
+  rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ′} =
   typeRet
     (typeThunk
       (typeLetin
         (typeLetin
-          (↦-preserves e₁↦M Γ⊢e₁⦂𝑻φ₁τ′)
+          ⟦Γ⟧⊢e₁⦂⟦𝑻φ₁τ′⟧
           (typeForce typeVar ≤-refl)
           (≡→≤ +-pure-idˡ))
         (typeLetin
-          ih
+          ⟦Γ∷τ′⟧⊢e₂⦂⟦𝑻φ₂τ⟧
           (typeForce typeVar ≤-refl)
           (≡→≤ +-pure-idˡ))
         φ₁+φ₂≤φ))
@@ -162,6 +166,6 @@ e↦⟦e⟧ {e = tick} = transTick
 
 translation-preservation : ∀ {n : ℕ} {Γ : CBN.Ctx n} {e : Term n} {τ : Type}
                          → Γ ⊢ e ⦂ τ
-                           --------------------------
+                           -----------------------------
                          → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ ⟦ τ ⟧ # pure
 translation-preservation = ↦-preserves e↦⟦e⟧

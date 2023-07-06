@@ -4,6 +4,7 @@ open import Data.Nat using (ℕ; suc; zero)
 open Eq using (_≡_; refl)
 
 open import CBPV.Base.Renaming
+open import CBPV.Base.Substitution
 open import CBPV.Base.Terms
 open import CBPV.Base.Types
 
@@ -67,7 +68,7 @@ mutual
               → Γ ⊢c M ⦂ 𝑭 A
               → Γ ∷ A ⊢c N ⦂ B
                 ------------------
-              → Γ ⊢c $⇐ M ⋯ N ⦂ B
+              → Γ ⊢c $⟵ M ⋯ N ⦂ B
 
 infix 4 _⊢v_⦂_
 infix 4 _⊢c_⦂_
@@ -114,3 +115,49 @@ mutual
       ext-pf = λ where
                    zero    → refl
                    (suc m) → pf m
+
+mutual
+  val-typepres-substitution : ∀ {n n′ : ℕ} {Γ : Ctx n} {V : Val n′}
+                                {A : ValType} {σ : Sub n n′} {Δ : Ctx n′}
+                            → Δ ⊢v V ⦂ A
+                            → (∀ (m : Fin n′) → Γ ⊢v σ m ⦂ Δ m)
+                              ---------------------------------
+                            → Γ ⊢v V ⦅ σ ⦆v ⦂ A
+  val-typepres-substitution (typeVar {m}) pf = pf m
+  val-typepres-substitution typeUnit _ = typeUnit
+  val-typepres-substitution (typeThunk Δ⊢M⦂B) pf =
+    typeThunk (comp-typepres-substitution Δ⊢M⦂B pf)
+
+
+  comp-typepres-substitution : ∀ {n n′ : ℕ} {Γ : Ctx n} {M : Comp n′}
+                                 {B : CompType} {σ : Sub n n′} {Δ : Ctx n′}
+                             → Δ ⊢c M ⦂ B
+                             → (∀ (m : Fin n′) → Γ ⊢v σ m ⦂ Δ m)
+                               ---------------------------------
+                             → Γ ⊢c M ⦅ σ ⦆c ⦂ B
+  comp-typepres-substitution (typeAbs Δ∷A⊢M⦂B) pf =
+    typeAbs (comp-typepres-substitution Δ∷A⊢M⦂B exts-pf)
+    where
+      exts-pf = λ where
+                    zero    → typeVar
+                    (suc m) → val-typepres-renaming (pf m) λ _ → refl
+  comp-typepres-substitution (typeApp Δ⊢M⦂A⇒B Δ⊢V⦂A) pf =
+    typeApp
+      (comp-typepres-substitution Δ⊢M⦂A⇒B pf)
+      (val-typepres-substitution Δ⊢V⦂A pf)
+  comp-typepres-substitution (typeSequence Δ⊢V⦂𝟙 Δ⊢M⦂B) pf =
+    typeSequence
+      (val-typepres-substitution Δ⊢V⦂𝟙 pf)
+      (comp-typepres-substitution Δ⊢M⦂B pf)
+  comp-typepres-substitution (typeForce Δ⊢V⦂𝑼B) pf =
+    typeForce (val-typepres-substitution Δ⊢V⦂𝑼B pf)
+  comp-typepres-substitution (typeRet Δ⊢V⦂A) pf =
+    typeRet (val-typepres-substitution Δ⊢V⦂A pf)
+  comp-typepres-substitution (typeLetin Δ⊢M⦂𝑭A Δ∷A⊢N⦂B) pf =
+    typeLetin
+      (comp-typepres-substitution Δ⊢M⦂𝑭A pf)
+      (comp-typepres-substitution Δ∷A⊢N⦂B exts-pf)
+    where
+      exts-pf = λ where
+                    zero    → typeVar
+                    (suc m) → val-typepres-renaming (pf m) λ _ → refl

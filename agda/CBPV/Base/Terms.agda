@@ -15,7 +15,7 @@ mutual
     _»_ : Val n → Comp n → Comp n
     _! : Val n → Comp n
     return_ : Val n → Comp n
-    $⇐_⋯_ : Comp n → Comp (suc n) → Comp n
+    $⟵_⋯_ : Comp n → Comp (suc n) → Comp n
 
 infix 5 ƛ_
 infixl 7 _»_
@@ -23,5 +23,5 @@ infix 6 _!
 infix 6 return_
 infixl 7 _·_
 infix 9 #_
-infixr 4 $⇐_⋯_
+infixr 4 $⟵_⋯_
 infix 5 ⟪_⟫

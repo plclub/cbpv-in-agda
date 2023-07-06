@@ -3,7 +3,7 @@ open import Data.Nat using (ℕ; suc)
 
 open import CBPV.Base.Terms
 
-module CBPV.Base.Renaming  where
+module CBPV.Base.Renaming where
 
 Ren : ℕ → ℕ → Set
 Ren n n′ = (m : Fin n′) → Fin n
@@ -31,7 +31,7 @@ mutual
   (M · V) [ ρ ]c = M [ ρ ]c · V [ ρ ]v
   (V » M) [ ρ ]c = V [ ρ ]v » M [ ρ ]c
   (return V) [ ρ ]c = return V [ ρ ]v
-  ($⇐ M ⋯ N) [ ρ ]c = $⇐ M [ ρ ]c ⋯ N [ ext ρ ]c
+  ($⟵ M ⋯ N) [ ρ ]c = $⟵ M [ ρ ]c ⋯ N [ ext ρ ]c
   (V !) [ ρ ]c = V [ ρ ]v !
 
 infix 8 _[_]v

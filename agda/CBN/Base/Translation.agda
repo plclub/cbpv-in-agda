@@ -74,28 +74,28 @@ instance
                                   zero    → refl
                                   (suc m) → refl
 
-trans-preserves : ∀ {n : ℕ} {e : Term n} {M : Comp n}
+↦-preserves : ∀ {n : ℕ} {e : Term n} {M : Comp n}
                     {Γ : Ctx n} {τ : Type}
-                → e ↦ M
-                → Γ ⊢ e ⦂ τ
-                  ------------------
-                → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧
-trans-preserves transVar typeVar = typeForce typeVar
-trans-preserves transUnit typeUnit = typeRet typeUnit
-trans-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} Γ∷τ⊢e⦂τ′)
-  with trans-preserves e↦M Γ∷τ⊢e⦂τ′
+            → e ↦ M
+            → Γ ⊢ e ⦂ τ
+              ------------------
+            → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧
+↦-preserves transVar typeVar = typeForce typeVar
+↦-preserves transUnit typeUnit = typeRet typeUnit
+↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} Γ∷τ⊢e⦂τ′)
+  with ↦-preserves e↦M Γ∷τ⊢e⦂τ′
 ...  | ih
   rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ}) = typeAbs ih
-trans-preserves (transApp e₁↦M e₂↦N) (typeApp Γ⊢e₁⦂τ′⇒τ Γ⊢e₂⦂τ′) =
+↦-preserves (transApp e₁↦M e₂↦N) (typeApp Γ⊢e₁⦂τ′⇒τ Γ⊢e₂⦂τ′) =
   typeApp
-    (trans-preserves e₁↦M Γ⊢e₁⦂τ′⇒τ)
-    (typeThunk (trans-preserves e₂↦N Γ⊢e₂⦂τ′))
-trans-preserves (transSeq e₁↦M e₂↦N) (typeSeq Γ⊢e₁⦂𝟙 Γ⊢e₂⦂τ) =
+    (↦-preserves e₁↦M Γ⊢e₁⦂τ′⇒τ)
+    (typeThunk (↦-preserves e₂↦N Γ⊢e₂⦂τ′))
+↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq Γ⊢e₁⦂𝟙 Γ⊢e₂⦂τ) =
   typeLetin
-    (trans-preserves e₁↦M Γ⊢e₁⦂𝟙)
+    (↦-preserves e₁↦M Γ⊢e₁⦂𝟙)
     (typeSequence
       typeVar
-      (comp-typepres-renaming (trans-preserves e₂↦N Γ⊢e₂⦂τ) λ{_ → refl}))
+      (comp-typepres-renaming (↦-preserves e₂↦N Γ⊢e₂⦂τ) λ{_ → refl}))
 
 e↦⟦e⟧ : ∀ {n : ℕ} {e : Term n} → e ↦ ⟦ e ⟧
 e↦⟦e⟧ {e = # x} = transVar
@@ -106,6 +106,6 @@ e↦⟦e⟧ {e = e₁ » e₂} = transSeq e↦⟦e⟧ e↦⟦e⟧
 
 translation-preservation : ∀ {n : ℕ} {Γ : Ctx n} {e : Term n} {τ : Type}
                          → Γ ⊢ e ⦂ τ
-                           --------------------------
+                           ----------------------
                          → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ ⟦ τ ⟧
-translation-preservation = trans-preserves e↦⟦e⟧
+translation-preservation = ↦-preserves e↦⟦e⟧
