@@ -61,6 +61,11 @@ module Effects where
                 → φ₁ ≤ φ₂
     ≤-+-invertʳ pf = ≤-trans ≤-+ʳ pf
 
+    ≤-+-invertˡ : ∀ {φ₁ φ₂ φ : Eff}
+                → φ + φ₁ ≤ φ₂
+                → φ₁ ≤ φ₂
+    ≤-+-invertˡ pf = ≤-trans ≤-+ˡ pf
+
     ≡→≤ : ∀ {φ₁ φ₂ : Eff}
         → φ₁ ≡ φ₂
         → φ₁ ≤ φ₂

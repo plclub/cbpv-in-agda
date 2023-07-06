@@ -31,7 +31,7 @@ mutual
   (M · V) [ ρ ]c = M [ ρ ]c · V [ ρ ]v
   (V » M) [ ρ ]c = V [ ρ ]v » M [ ρ ]c
   (return V) [ ρ ]c = return V [ ρ ]v
-  ($⇐ M ⋯ N) [ ρ ]c = $⇐ M [ ρ ]c ⋯ N [ ext ρ ]c
+  ($⟵ M ⋯ N) [ ρ ]c = $⟵ M [ ρ ]c ⋯ N [ ext ρ ]c
   tick [ _ ]c = tick
   (V !) [ ρ ]c = V [ ρ ]v !
 

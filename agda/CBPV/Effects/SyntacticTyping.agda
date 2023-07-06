@@ -4,6 +4,7 @@ open import Data.Nat using (ℕ; suc; zero)
 open Eq using (_≡_; refl)
 
 open import CBPV.Effects.Renaming
+open import CBPV.Effects.Substitution
 open import CBPV.Effects.Terms
 open import Effects
 
@@ -73,7 +74,7 @@ mutual
               → Γ ∷ A ⊢c N ⦂ B # φ₂
               → φ₁ + φ₂ ≤ φ
                 ------------------
-              → Γ ⊢c $⇐ M ⋯ N ⦂ B # φ
+              → Γ ⊢c $⟵ M ⋯ N ⦂ B # φ
 
     typeTick : ∀ {φ : Eff}
              → tock ≤ φ
@@ -142,3 +143,52 @@ mutual
                    zero    → refl
                    (suc m) → pf m
   comp-typepres-renaming (typeTick tock≤φ) _ = typeTick tock≤φ
+
+mutual
+  val-typepres-substitution : ∀ {n n′ : ℕ} {Γ : Ctx n} {V : Val n′}
+                                {A : ValType} {σ : Sub n n′} {Δ : Ctx n′}
+                            → Δ ⊢v V ⦂ A
+                            → (∀ (m : Fin n′) → Γ ⊢v σ m ⦂ Δ m)
+                              ---------------------------------
+                            → Γ ⊢v V ⦅ σ ⦆v ⦂ A
+  val-typepres-substitution (typeVar {m}) pf = pf m
+  val-typepres-substitution typeUnit _ = typeUnit
+  val-typepres-substitution (typeThunk Δ⊢M⦂B) pf =
+    typeThunk (comp-typepres-substitution Δ⊢M⦂B pf)
+
+
+  comp-typepres-substitution : ∀ {n n′ : ℕ} {Γ : Ctx n} {M : Comp n′}
+                                 {B : CompType} {φ : Eff} {σ : Sub n n′}
+                                 {Δ : Ctx n′}
+                             → Δ ⊢c M ⦂ B # φ
+                             → (∀ (m : Fin n′) → Γ ⊢v σ m ⦂ Δ m)
+                               ---------------------------------
+                             → Γ ⊢c M ⦅ σ ⦆c ⦂ B # φ
+  comp-typepres-substitution (typeAbs Δ∷A⊢M⦂B#φ) pf =
+    typeAbs (comp-typepres-substitution Δ∷A⊢M⦂B#φ exts-pf)
+    where
+      exts-pf = λ where
+                    zero    → typeVar
+                    (suc m) → val-typepres-renaming (pf m) λ _ → refl
+  comp-typepres-substitution (typeApp Δ⊢M⦂A⇒B#φ Δ⊢V⦂A) pf =
+    typeApp
+      (comp-typepres-substitution Δ⊢M⦂A⇒B#φ pf)
+      (val-typepres-substitution Δ⊢V⦂A pf)
+  comp-typepres-substitution (typeSequence Δ⊢V⦂𝟙 Δ⊢M⦂B#φ) pf =
+    typeSequence
+      (val-typepres-substitution Δ⊢V⦂𝟙 pf)
+      (comp-typepres-substitution Δ⊢M⦂B#φ pf)
+  comp-typepres-substitution (typeForce Δ⊢V⦂𝑼φ′B φ′≤φ) pf =
+    typeForce (val-typepres-substitution Δ⊢V⦂𝑼φ′B pf) φ′≤φ
+  comp-typepres-substitution (typeRet Δ⊢V⦂A) pf =
+    typeRet (val-typepres-substitution Δ⊢V⦂A pf)
+  comp-typepres-substitution (typeLetin Δ⊢M⦂𝑭A#φ₁ Δ∷A⊢N⦂B#φ₂ φ₁+φ₂≤φ) pf =
+    typeLetin
+      (comp-typepres-substitution Δ⊢M⦂𝑭A#φ₁ pf)
+      (comp-typepres-substitution Δ∷A⊢N⦂B#φ₂ exts-pf)
+      φ₁+φ₂≤φ
+    where
+      exts-pf = λ where
+                    zero    → typeVar
+                    (suc m) → val-typepres-renaming (pf m) λ _ → refl
+  comp-typepres-substitution (typeTick tock≤φ) _ = typeTick tock≤φ

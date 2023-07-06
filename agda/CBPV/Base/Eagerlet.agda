@@ -28,7 +28,7 @@ typeEagerlet {M = return V} (typeRet Γ⊢V⦂A) Γ∷A⊢N⦂B =
   comp-typepres-substitution Γ∷A⊢N⦂B λ where
                                          zero    → Γ⊢V⦂A
                                          (suc m) → typeVar
-typeEagerlet {M = _ · _} Γ⊢M⦂𝑭A Γ∷A⊢N⦂B = typeLetin Γ⊢M⦂𝑭A Γ∷A⊢N⦂B
-typeEagerlet {M = _ » _} Γ⊢M⦂𝑭A Γ∷A⊢N⦂B = typeLetin Γ⊢M⦂𝑭A Γ∷A⊢N⦂B
-typeEagerlet {M = _ !} Γ⊢M⦂𝑭A Γ∷A⊢N⦂B = typeLetin Γ⊢M⦂𝑭A Γ∷A⊢N⦂B
-typeEagerlet {M = $⟵ _ ⋯ _} Γ⊢M⦂𝑭A Γ∷A⊢N⦂B = typeLetin Γ⊢M⦂𝑭A Γ∷A⊢N⦂B
+typeEagerlet {M = _ · _} = typeLetin
+typeEagerlet {M = _ » _} = typeLetin
+typeEagerlet {M = _ !} = typeLetin
+typeEagerlet {M = $⟵ _ ⋯ _} = typeLetin

@@ -41,7 +41,7 @@ data _↦_ {n : ℕ} : Term n → Comp n → Set where
            → e1 ↦ M
            → e2 ↦ N
              ---------------------------------------
-           → e1 » e2 ↦ $⇐ M ⋯ (# zero) » N [ suc ]c
+           → e1 » e2 ↦ $⟵ M ⋯ (# zero) » N [ suc ]c
 
 infix 3 _↦_
 
@@ -65,7 +65,7 @@ instance
   Translation.⟦ ⟦Term⟧ ⟧ (ƛ e) = ƛ ⟦ e ⟧
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ · e₂) = ⟦ e₁ ⟧ · ⟪ ⟦ e₂ ⟧ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ » e₂) =
-    $⇐ ⟦ e₁ ⟧ ⋯
+    $⟵ ⟦ e₁ ⟧ ⋯
     (# zero) » ⟦ e₂ ⟧ [ suc ]c
 
 ⟦Γ∷τ⟧-expand : ∀ {n : ℕ} {Γ : Ctx n} {τ : Type}

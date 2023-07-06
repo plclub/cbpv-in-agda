@@ -45,7 +45,7 @@ data _↦_ {n : ℕ} : Term n → Comp n → Set where
            → e1 ↦ M
            → e2 ↦ N
              ---------------------------------------
-           → e1 » e2 ↦ $⇐ M ⋯ (♯ zero) » N [ suc ]c
+           → e1 » e2 ↦ $⟵ M ⋯ (♯ zero) » N [ suc ]c
 
   transReturn : ∀ {e : Term n} {M : Comp n}
               → e ↦ M
@@ -57,9 +57,9 @@ data _↦_ {n : ℕ} : Term n → Comp n → Set where
             → e₁ ↦ M
             → e₂ ↦ N
               ---------------------------------------------------------------
-            → $⇐ e₁ ⋯ e₂ ↦ return ⟪ $⇐ $⇐ M ⋯ ♯ zero ! ⋯ $⇐ N ⋯ ♯ zero ! ⟫
+            → $⟵ e₁ ⋯ e₂ ↦ return ⟪ $⟵ $⟵ M ⋯ ♯ zero ! ⋯ $⟵ N ⋯ ♯ zero ! ⟫
 
-  transTick : tick ↦ return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+  transTick : tick ↦ return ⟪ $⟵ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
 
 infix 3 _↦_
 
@@ -84,17 +84,17 @@ instance
   Translation.⟦ ⟦Term⟧ ⟧ (ƛ e) = ƛ ⟦ e ⟧
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ · e₂) = ⟦ e₁ ⟧ · ⟪ ⟦ e₂ ⟧ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ » e₂) =
-    $⇐ ⟦ e₁ ⟧ ⋯
+    $⟵ ⟦ e₁ ⟧ ⋯
     (♯ zero) » ⟦ e₂ ⟧ [ suc ]c
   Translation.⟦ ⟦Term⟧ ⟧ (return e) = return ⟪ return ⟪ ⟦ e ⟧ ⟫ ⟫
-  Translation.⟦ ⟦Term⟧ ⟧ ($⇐ e₁ ⋯ e₂) =
+  Translation.⟦ ⟦Term⟧ ⟧ ($⟵ e₁ ⋯ e₂) =
     return ⟪
-      $⇐
-        $⇐ ⟦ e₁ ⟧ ⋯
+      $⟵
+        $⟵ ⟦ e₁ ⟧ ⋯
         ♯ zero !
-      ⋯ $⇐ ⟦ e₂ ⟧ ⋯ ♯ zero !
+      ⋯ $⟵ ⟦ e₂ ⟧ ⋯ ♯ zero !
     ⟫
-  Translation.⟦ ⟦Term⟧ ⟧ tick = return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+  Translation.⟦ ⟦Term⟧ ⟧ tick = return ⟪ $⟵ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
 
 ⟦Γ∷τ⟧-expand : ∀ {n : ℕ} {Γ : Ctx n} {τ : Type}
                → ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 pure ⟦ τ ⟧
@@ -161,7 +161,7 @@ e↦⟦e⟧ {e = ƛ e} = transAbs e↦⟦e⟧
 e↦⟦e⟧ {e = e₁ · e₂} = transApp e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = e₁ » e₂} = transSeq e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = return e} = transReturn e↦⟦e⟧
-e↦⟦e⟧ {e = $⇐ e₁ ⋯ e₂} = transBind e↦⟦e⟧ e↦⟦e⟧
+e↦⟦e⟧ {e = $⟵ e₁ ⋯ e₂} = transBind e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = tick} = transTick
 
 translation-preservation : ∀ {n : ℕ} {Γ : CBN.Ctx n} {e : Term n} {τ : Type}
