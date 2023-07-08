@@ -1,6 +1,6 @@
 import Relation.Binary.PropositionalEquality as Eq
 open import Data.Fin using (Fin; suc; zero)
-open import Data.Nat using (ℕ; suc; zero)
+open import Data.Nat as ℕ using (ℕ; suc; zero)
 open Eq using (_≡_; refl)
 
 open import CBPV.Effects.Renaming
@@ -36,55 +36,53 @@ mutual
 
     typeThunk : ∀ {M : Comp n} {B : CompType} {φ : Eff}
               → Γ ⊢c M ⦂ B # φ
-                ----------------
+                ------------------
               → Γ ⊢v ⟪ M ⟫ ⦂ 𝑼 φ B
 
   data _⊢c_⦂_#_ {n : ℕ} (Γ : Ctx n) : Comp n → CompType → Eff → Set where
     typeAbs : ∀ {A : ValType} {M : Comp (suc n)} {B : CompType}
                 {φ : Eff}
             → Γ ∷ A ⊢c M ⦂ B # φ
-              ----------------
+              --------------------
             → Γ ⊢c ƛ M ⦂ A ⇒ B # φ
 
     typeApp : ∀ {M : Comp n} {A : ValType} {B : CompType} {V : Val n} {φ : Eff}
             → Γ ⊢c M ⦂ A ⇒ B # φ
             → Γ ⊢v V ⦂ A
-              --------------
+              ------------------
             → Γ ⊢c M · V ⦂ B # φ
 
     typeSequence : ∀ {V : Val n} {M : Comp n} {B : CompType} {φ : Eff}
                  → Γ ⊢v V ⦂ 𝟙
                  → Γ ⊢c M ⦂ B # φ
-                   --------------
+                   ------------------
                  → Γ ⊢c V » M ⦂ B # φ
 
     typeForce : ∀ {V : Val n} {B : CompType} {φ₁ φ₂ : Eff}
               → Γ ⊢v V ⦂ 𝑼 φ₁ B
               → φ₁ ≤ φ₂
-                ------------
+                -----------------
               → Γ ⊢c V ! ⦂ B # φ₂
 
     typeRet : ∀ {V : Val n} {A : ValType} {φ : Eff}
             → Γ ⊢v V ⦂ A
-              -------------------
+              -----------------------
             → Γ ⊢c return V ⦂ 𝑭 A # φ
     typeLetin : ∀ {M : Comp n} {A : ValType} {N : Comp (suc n)} {B : CompType}
                   {φ₁ φ₂ φ : Eff}
               → Γ ⊢c M ⦂ 𝑭 A # φ₁
               → Γ ∷ A ⊢c N ⦂ B # φ₂
               → φ₁ + φ₂ ≤ φ
-                ------------------
+                ----------------------
               → Γ ⊢c $⟵ M ⋯ N ⦂ B # φ
 
     typeTick : ∀ {φ : Eff}
              → tock ≤ φ
-               -----------------------
+               -------------------
              → Γ ⊢c tick ⦂ 𝑭 𝟙 # φ
 
 infix 4 _⊢v_⦂_
 infix 4 _⊢c_⦂_#_
-
--- Subeffecting well-typed terms
 
 type-subeff : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {B : CompType} {φ ψ : Eff}
             → Γ ⊢c M ⦂ B # φ
