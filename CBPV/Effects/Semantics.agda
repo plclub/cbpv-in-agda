@@ -79,7 +79,7 @@ data _∣_⇓c_#_ {n : ℕ} (ρ : Env n) : Comp n → ClosTerminal → Eff → S
             → ρ ∣ M ⇓c return W # φ₁
             → ρ ∷ᵨ W ∣ N ⇓c T # φ₂
               ---------------------------
-            → ρ ∣ $⇐ M ⋯ N ⇓c T # φ₁ + φ₂
+            → ρ ∣ $⟵ M ⋯ N ⇓c T # φ₁ + φ₂
 
   evalTick : ρ ∣ tick ⇓c return unit # tock
 

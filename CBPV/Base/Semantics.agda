@@ -30,8 +30,8 @@ _∷ᵨ_ : ∀ {n : ℕ} → Env n → ClosVal → Env (suc n)
 infixl 5 _∷ᵨ_
 
 data _∣_⇓v_ {n : ℕ} (ρ : Env n) : Val n → ClosVal → Set where
-  evalVar : ∀ {m : Fin n} {W : ClosVal}
-            -------------
+  evalVar : ∀ {m : Fin n}
+            --------------
           → ρ ∣ # m ⇓v ρ m
 
   evalUnit : ρ ∣ unit ⇓v unit
@@ -79,4 +79,4 @@ data _∣_⇓c_ {n : ℕ} (ρ : Env n) : Comp n → ClosTerminal → Set where
             → ρ ∣ M ⇓c return W
             → ρ ∷ᵨ W ∣ N ⇓c T
               -----------------
-            → ρ ∣ $⇐ M ⋯ N ⇓c T
+            → ρ ∣ $⟵ M ⋯ N ⇓c T

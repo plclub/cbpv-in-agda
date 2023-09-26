@@ -63,7 +63,7 @@ infix 4 _⊨c_⦂_
 semanticVar : ∀ {n : ℕ} {Γ : Ctx n} {m : Fin n}
               --------------
             → Γ ⊨v # m ⦂ Γ m
-semanticVar {m = m} {ρ = ρ} Γ⊨ρ = ρ m , evalVar {W = ρ m} , Γ⊨ρ m
+semanticVar {m = m} {ρ = ρ} Γ⊨ρ = ρ m , evalVar {m = m} , Γ⊨ρ m
 
 semanticUnit : ∀ {n : ℕ} {Γ : Ctx n}
                -------------
@@ -117,8 +117,8 @@ semanticForce : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n} {B : CompType}
               → Γ ⊨c V ! ⦂ B
 semanticForce Γ⊨V⦂𝑼B Γ⊨ρ
   with Γ⊨V⦂𝑼B Γ⊨ρ
-...  | W@(clos⦅ ρ ,⟪ M ⟫⦆) , ρ∣V⇓W , T , ρ|M⇓T , T∈𝐺⟦B⟧c =
-  T , evalForce ρ∣V⇓W ρ|M⇓T , T∈𝐺⟦B⟧c
+...  | W@(clos⦅ ρ′ ,⟪ M ⟫⦆) , ρ∣V⇓W , T , ρ′|M⇓T , T∈𝐺⟦B⟧c =
+  T , evalForce ρ∣V⇓W ρ′|M⇓T , T∈𝐺⟦B⟧c
 
 semanticRet : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n} {A : ValType}
             → Γ ⊨v V ⦂ A
@@ -132,7 +132,7 @@ semanticLetin : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {A : ValType}
                   {N : Comp (suc n)} {B : CompType}
               → Γ ⊨c M ⦂ 𝑭 A
               → Γ ∷ A ⊨c N ⦂ B
-              → Γ ⊨c $⇐ M ⋯ N ⦂ B
+              → Γ ⊨c $⟵ M ⋯ N ⦂ B
 semanticLetin Γ⊨M⦂𝑭A Γ∷A⊨N⦂B Γ⊨ρ
   with Γ⊨M⦂𝑭A Γ⊨ρ
 ...  | T′@(return W) , ρ∣M⇓T′ , W∈𝐺⟦A⟧v
