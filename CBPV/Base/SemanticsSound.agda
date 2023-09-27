@@ -34,7 +34,7 @@ infix 4 _≈c_
 ~-ext : ∀ {n : ℕ} {ρ : Env n} {σ : Sub zero n} {W : ClosVal} {V : Val zero}
       → ρ ~ σ
       → W ≈v V
-      → ρ ∷ᵨ W ~ σ • V
+      → ρ ∷ᵨ W ~ V • σ
 ~-ext _ W≈V zero = W≈V
 ~-ext ρ~σ _ (suc m) = ρ~σ m
 
@@ -68,9 +68,9 @@ mutual
   ... | W≈V
     with ⇓c-sound (~-ext ρ′~σ′ W≈V) T′⇓ | β {M = M′ ⦅ exts σ′ ⦆c} {V = V ⦅ σ ⦆v}
   ... | N , T′⟶*N , T≈N                 | β-M′·V
-    rewrite sub-sub {σ  = exts σ′} {id • V ⦅ σ ⦆v} {M′}
-          | sym (subst-zero-exts-cons {σ = σ′} {V = V ⦅ σ ⦆v})
-          | sym (sub-sub {σ = exts σ′} {subst-zero (V ⦅ σ ⦆v)} {M′}) =
+    rewrite sub-sub (exts σ′) (V ⦅ σ ⦆v • id) M′
+          | sym (subst-zero-exts-cons σ′ (V ⦅ σ ⦆v))
+          | sym (sub-sub (exts σ′) (subst-zero (V ⦅ σ ⦆v)) M′) =
     N ,
     ⟶*-trans (⟶*-app-compatible M⟶N′) (β-M′·V ⟶⟨ T′⟶*N ⟩) ,
     T≈N
@@ -88,8 +88,8 @@ mutual
   ... | return V
     with ⇓c-sound (~-ext ρ~σ W≈V) N⇓T
   ... | N′ , N⟶N′ , T≈N′
-    rewrite sym (subst-zero-exts-cons {σ = σ} {V})
-          | sym (sub-sub {σ = exts σ} {subst-zero V} {N}) =
+    rewrite sym (subst-zero-exts-cons σ V)
+          | sym (sub-sub (exts σ) (subst-zero V) N) =
     N′ , ⟶*-trans (⟶*-letin-compatible M⟶V) (βLetIn ⟶⟨ N⟶N′ ⟩)  , T≈N′
 
 sound : ∀ {n : ℕ} {M : Comp zero} {T : ClosTerminal}
@@ -99,5 +99,5 @@ sound : ∀ {n : ℕ} {M : Comp zero} {T : ClosTerminal}
 sound {M = M} M⇓T
   with ⇓c-sound {σ = id} (λ ()) M⇓T
 ... | N , M⟶N , T≈N
-  rewrite sub-id {M = M} =
+  rewrite sub-id M =
   N , M⟶N , T≈N
