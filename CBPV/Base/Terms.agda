@@ -23,5 +23,5 @@ infix 6 _!
 infix 6 return_
 infixl 7 _·_
 infix 9 #_
-infixr 4 $⟵_⋯_
+infixr 5 $⟵_⋯_
 infix 5 ⟪_⟫

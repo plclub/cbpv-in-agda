@@ -1,5 +1,7 @@
+import Relation.Binary.PropositionalEquality as Eq
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc)
+open Eq using (_≡_)
 
 open import CBPV.Base.Renaming
 open import CBPV.Base.Terms
@@ -38,8 +40,31 @@ mutual
 infix 8 _⦅_⦆v
 infix 8 _⦅_⦆c
 
+_•_ : ∀ {n m : ℕ} → Sub n m → Val n → Sub n (suc m)
+(σ • v) zero = v
+(σ • v) (suc m) = σ m
+
+infixl 5 _•_
+
+id : ∀ {n : ℕ} → Sub n n
+id m = # m
+
+subst-zero : ∀ {n} → Val n → Sub n (suc n)
+subst-zero V zero = V
+subst-zero V (suc m) = # m
+
 _〔_〕 : ∀ {n : ℕ} → Comp (suc n) → Val n → Comp n
-M 〔 V 〕 = M ⦅ σ ⦆c where
-  σ = λ where
-          zero    → V
-          (suc m) → # m
+M 〔 V 〕 = M ⦅ subst-zero V ⦆c
+
+_∘_ : ∀ {n m p : ℕ} → Sub m n → Sub p m → Sub p n
+(σ ∘ τ) m = σ m ⦅ τ ⦆v
+
+postulate
+  sub-id : ∀ {n : ℕ} {M : Comp n}
+         → M ⦅ id ⦆c ≡ M
+
+  sub-sub : ∀ {n m p : ℕ} {σ : Sub m n} {τ : Sub p m} {M : Comp n}
+          → M ⦅ σ ⦆c ⦅ τ ⦆c ≡ M ⦅ σ ∘ τ ⦆c
+
+  subst-zero-exts-cons : ∀ {n m : ℕ} {σ : Sub n m} {V : Val n}
+                       → exts σ ∘ subst-zero V ≡ σ • V
