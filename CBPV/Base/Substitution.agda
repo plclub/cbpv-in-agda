@@ -1,12 +1,19 @@
+import Axiom.Extensionality.Propositional as Ext
 import Relation.Binary.PropositionalEquality as Eq
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc)
-open Eq using (_≡_)
+open import Level using (0ℓ)
+open Eq using (_≡_; refl)
+open Eq.≡-Reasoning using (begin_; step-≡; _∎)
+open Ext using (Extensionality)
 
 open import CBPV.Base.Renaming
 open import CBPV.Base.Terms
 
 module CBPV.Base.Substitution where
+
+postulate
+  extensionality : Extensionality 0ℓ 0ℓ
 
 Sub : ℕ → ℕ → Set
 Sub n n′ = (m : Fin n′) → Val n
@@ -59,10 +66,32 @@ M 〔 V 〕 = M ⦅ subst-zero V ⦆c
 _∘_ : ∀ {n m p : ℕ} → Sub m n → Sub p m → Sub p n
 (σ ∘ τ) m = σ m ⦅ τ ⦆v
 
-postulate
-  sub-id : ∀ {n : ℕ} {M : Comp n}
-         → M ⦅ id ⦆c ≡ M
+cong-sub : ∀ 
 
+exts-ids : ∀ {n : ℕ} → exts (id {n}) ≡ id
+exts-ids = extensionality lemma where
+  lemma = λ where zero    → refl
+                  (suc m) → refl
+
+
+
+mutual
+  sub-id-val : ∀ {n : ℕ} (V : Val n)
+             → V ⦅ id ⦆v ≡ V
+  sub-id-val (# x) = refl
+  sub-id-val (unit) = refl
+  sub-id-val (⟪ M ⟫) rewrite sub-id M = refl
+
+  sub-id : ∀ {n : ℕ} (M : Comp n)
+         → M ⦅ id ⦆c ≡ M
+  sub-id (ƛ M) = {!!}
+  sub-id (M · V) rewrite sub-id-val V | sub-id M = refl
+  sub-id (V » M) rewrite sub-id-val V | sub-id M = refl
+  sub-id (V !) rewrite sub-id-val V = refl
+  sub-id (return V) rewrite sub-id-val V = refl
+  sub-id ($⟵ M ⋯ N) = {!!}
+
+postulate
   sub-sub : ∀ {n m p : ℕ} {σ : Sub m n} {τ : Sub p m} {M : Comp n}
           → M ⦅ σ ⦆c ⦅ τ ⦆c ≡ M ⦅ σ ∘ τ ⦆c
 
