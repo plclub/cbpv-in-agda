@@ -65,7 +65,7 @@ mutual
   ...  | unit≈V             | N , φ′ , M⟶N , T≈N , φ′≤φ
     with V ⦅ σ ⦆v in eq
   ... | unit =
-    N , pure + φ′ , (βSeq ⟶⟨ M⟶N ⟩) , T≈N , ≤-trans (≡→≤ +-pure-idˡ) φ′≤φ
+    N , φ′ , (βSeq ⟶⟨ M⟶N ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
   ⇓c-adequate {σ = σ} ρ~σ (evalApp {M′ = M′} {V} M⇓ V⇓ T′⇓)
     with ⇓c-adequate ρ~σ M⇓
   ... | N′ , φ₁′ , M⟶N′ , (σ′ , ρ′~σ′ , refl) , φ₁′≤φ₁
@@ -77,17 +77,17 @@ mutual
           | sym (subst-zero-exts-cons σ′ (V ⦅ σ ⦆v))
           | sym (sub-sub (exts σ′) (subst-zero (V ⦅ σ ⦆v)) M′) =
     N ,
-    φ₁′ + (pure + φ₂′) ,
-    ⟶*-trans (⟶*-app-compatible M⟶N′) (β-M′·V ⟶⟨ T′⟶*N ⟩) ,
+    φ₁′ + φ₂′ ,
+    ⟶*-trans (⟶*-app-compatible M⟶N′) (β-M′·V ⟶⟨ T′⟶*N ⟩ ≡→≤ +-pure-idˡ) ,
     T≈N ,
-    ≤-trans (≤-+-compatibleʳ φ₁′≤φ₁) (≤-trans (≤-+-compatibleˡ (≡→≤ +-pure-idˡ)) (≤-+-compatibleˡ φ₂′≤φ₂))
+    ≤-trans (≤-+-compatibleʳ φ₁′≤φ₁) (≤-+-compatibleˡ φ₂′≤φ₂)
   ⇓c-adequate ρ~σ (evalForce V⇓⟪M⟫ M⇓T)
     with ⇓v-adequate ρ~σ V⇓⟪M⟫
   ... | σ′ , ρ′~σ′ , V≡⟪M⟫
     with ⇓c-adequate ρ′~σ′ M⇓T
   ... | N , φ′ , M⟶*N , T≈N , φ′≤φ
     rewrite V≡⟪M⟫ =
-    N , pure + φ′ , (stepForceThunk ⟶⟨ M⟶*N ⟩) , T≈N , ≤-trans (≡→≤ +-pure-idˡ) φ′≤φ
+    N , φ′ , (stepForceThunk ⟶⟨ M⟶*N ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
   ⇓c-adequate {σ = σ} ρ~σ (evalLetin {N = N} M⇓W N⇓T)
     with ⇓c-adequate ρ~σ M⇓W
   ... | retV , φ₁′ , M⟶V , W≈V , φ₁′≤φ₁
@@ -98,12 +98,12 @@ mutual
     rewrite sym (subst-zero-exts-cons σ V)
           | sym (sub-sub (exts σ) (subst-zero V) N) =
     N′ ,
-    φ₁′ + (pure + φ₂′) ,
-    ⟶*-trans (⟶*-letin-compatible M⟶V) (βLetIn ⟶⟨ N⟶N′ ⟩) ,
+    φ₁′ + φ₂′ ,
+    ⟶*-trans (⟶*-letin-compatible M⟶V) (βLetIn ⟶⟨ N⟶N′ ⟩ ≡→≤ +-pure-idˡ) ,
     T≈N′ ,
-    ≤-trans (≤-+-compatibleʳ φ₁′≤φ₁) (≤-trans (≤-+-compatibleˡ (≡→≤ +-pure-idˡ)) (≤-+-compatibleˡ φ₂′≤φ₂))
+    ≤-trans (≤-+-compatibleʳ φ₁′≤φ₁) (≤-+-compatibleˡ φ₂′≤φ₂)
   ⇓c-adequate {σ = σ} ρ~σ evalTick =
-    (return unit) ⦅ σ ⦆c , tock + pure , (βtick ⟶⟨ (return unit)  ∎ ⟩) , tt , ≡→≤ +-pure-idʳ
+    (return unit) ⦅ σ ⦆c , tock , (βtick ⟶⟨ (return unit)  ∎ ⟩ ≡→≤ +-pure-idʳ) , tt , ≤-refl
 
 adequacy : ∀ {n : ℕ} {M : Comp zero} {T : ClosTerminal} {φ : Eff}
          → ∅ᵨ ∣ M ⇓c T # φ
