@@ -4,7 +4,7 @@ module Everything where
 import CBPV.Base.SyntacticTyping
 import CBPV.Base.Semantics
 
-import CBPV.Base.SemanticsSound
+import CBPV.Base.Adequacy
 
 {- Section 2.1 -}
 import CBPV.Base.SemanticTyping
