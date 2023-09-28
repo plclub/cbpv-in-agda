@@ -4,12 +4,12 @@ module Everything where
 import CBPV.Base.SyntacticTyping
 import CBPV.Base.Semantics
 
-import CBPV.Base.Adequacy
-
 {- Section 2.1 -}
 import CBPV.Base.SemanticTyping
 import CBPV.Base.TypeSoundness
 
+{- Section 2: Extra -}
+import CBPV.Base.Adequacy
 import CBN.Base.Translation
 import CBV.Base.Translation
 
@@ -27,3 +27,6 @@ import CBV.Effects.Translation
 {- Section 3.3 -}
 import CBN.Monadic.Translation
 import CBV.Monadic.Translation
+
+{- Section 3: Extra -}
+import CBPV.Effects.Adequacy

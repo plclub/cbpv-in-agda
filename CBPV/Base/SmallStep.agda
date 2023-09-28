@@ -27,7 +27,7 @@ data _⟶_ {n : ℕ} : Comp n → Comp n → Set where
               ----------------------
             → $⟵ M ⋯ N ⟶ $⟵ M′ ⋯ N
 
-  stepSeq : ∀ {M : Comp n}
+  βSeq : ∀ {M : Comp n}
             ------------
           → unit » M ⟶ M
 
