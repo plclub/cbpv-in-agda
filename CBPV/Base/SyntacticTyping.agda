@@ -33,6 +33,19 @@ mutual
                 ----------------
               → Γ ⊢v ⟪ M ⟫ ⦂ 𝑼 B
 
+    typePair : Γ ⊢v V₁ ⦂ A₁
+             → Γ ⊢v V₂ ⦂ A₂
+               --------------------------
+             → Γ ⊢v ⟨ V₁ , V₂ ⟩ ⦂ A₁ * A₂
+
+    typeInl : Γ ⊢v V ⦂ A₁
+              --------------------
+            → Γ ⊢v inl V ⦂ A₁ ∪ A₂
+
+    typeInr : Γ ⊢v V ⦂ A₂
+              --------------------
+            → Γ ⊢v inr V ⦂ A₁ ∪ A₂
+
   data _⊢c_⦂_ : Ctx n → Comp n → CompType → Set where
     typeAbs : Γ ∷ A ⊢c M ⦂ B
               ----------------
@@ -60,6 +73,30 @@ mutual
               → Γ ∷ A ⊢c N ⦂ B
                 ------------------
               → Γ ⊢c $⟵ M ⋯ N ⦂ B
+
+    typeSplit : Γ ⊢v V ⦂ A₁ * A₂
+              → Γ ∷ A₁ ∷ A₂ ⊢c M ⦂ B
+                --------------------
+              → Γ ⊢c $≔ V ⋯ M ⦂ B
+
+    typeCpair : Γ ⊢c M₁ ⦂ B₁
+              → Γ ⊢c M₂ ⦂ B₂
+                --------------------------
+              → Γ ⊢c ⟨ M₁ , M₂ ⟩ ⦂ B₁ & B₂
+
+    typeProjl : Γ ⊢c M ⦂ B₁ & B₂
+                -----------------
+              → Γ ⊢c projl M ⦂ B₁
+
+    typeProjr : Γ ⊢c M ⦂ B₁ & B₂
+                -----------------
+              → Γ ⊢c projr M ⦂ B₂
+
+    typeCase : Γ ⊢v V ⦂ A₁ ∪ A₂
+             → Γ ∷ A₁ ⊢c M₁ ⦂ B
+             → Γ ∷ A₂ ⊢c M₂ ⦂ B
+               -------------------------------
+             → Γ ⊢c case V inl⇒ M₁ inr⇒ M₂ ⦂ B
 
 infix 4 _⊢v_⦂_
 infix 4 _⊢c_⦂_

@@ -14,6 +14,12 @@ mutual
   determinism-val evalVar evalVar = refl
   determinism-val evalUnit evalUnit = refl
   determinism-val evalThunk evalThunk = refl
+  determinism-val (evalPair V₁⇓ V₂⇓) (evalPair V₁⇓′ V₂⇓′)
+    rewrite determinism-val V₁⇓ V₁⇓′ | determinism-val V₂⇓ V₂⇓′ = refl
+  determinism-val (evalInl V⇓) (evalInl V⇓′)
+    rewrite determinism-val V⇓ V⇓′ = refl
+  determinism-val (evalInr V⇓) (evalInr V⇓′)
+    rewrite determinism-val V⇓ V⇓′ = refl
 
   determinism-comp : ρ ⊢c M ⇓ T
                    → ρ ⊢c M ⇓ T′
@@ -35,3 +41,30 @@ mutual
     with determinism-comp M⇓ M⇓′
   ...  | refl
     rewrite determinism-comp N⇓ N⇓′ = refl
+  determinism-comp (evalSplit V⇓ M⇓) (evalSplit V⇓′ M⇓′)
+    with determinism-val V⇓ V⇓′
+  ...  | refl
+    rewrite determinism-comp M⇓ M⇓′ = refl
+  determinism-comp (evalCaseInl V⇓ M⇓) (evalCaseInl V⇓′ M⇓′)
+    with determinism-val V⇓ V⇓′
+  ...  | refl
+    rewrite determinism-comp M⇓ M⇓′ = refl
+  determinism-comp (evalCaseInl V⇓ _) (evalCaseInr V⇓′ _)
+    with determinism-val V⇓ V⇓′
+  ... | ()
+  determinism-comp (evalCaseInr V⇓ _) (evalCaseInl V⇓′ _)
+    with determinism-val V⇓ V⇓′
+  ... | ()
+  determinism-comp (evalCaseInr V⇓ M⇓) (evalCaseInr V⇓′ M⇓′)
+    with determinism-val V⇓ V⇓′
+  ...  | refl
+    rewrite determinism-comp M⇓ M⇓′ = refl
+  determinism-comp evalCpair evalCpair = refl
+  determinism-comp (evalProjl M⇓ M₁⇓) (evalProjl M⇓′ M₁⇓′)
+    with determinism-comp M⇓ M⇓′
+  ...  | refl
+    rewrite determinism-comp M₁⇓ M₁⇓′ = refl
+  determinism-comp (evalProjr M⇓ M₂⇓) (evalProjr M⇓′ M₂⇓′)
+    with determinism-comp M⇓ M⇓′
+  ...  | refl
+    rewrite determinism-comp M₂⇓ M₂⇓′ = refl

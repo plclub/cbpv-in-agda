@@ -25,6 +25,9 @@ mutual
   unit [ _ ]v    = unit
   # m [ ρ ]v     = # ρ m
   ⟪ M ⟫ [ ρ ]v   = ⟪ M [ ρ ]c ⟫
+  ⟨ V₁ , V₂ ⟩ [ ρ ]v = ⟨ V₁ [ ρ ]v , V₂ [ ρ ]v ⟩
+  inl V [ ρ ]v = inl (V [ ρ ]v)
+  inr V [ ρ ]v = inr (V [ ρ ]v)
 
   _[_]c : ∀ {n n′ : ℕ}
          → Comp n′
@@ -37,6 +40,11 @@ mutual
   (return V) [ ρ ]c = return V [ ρ ]v
   ($⟵ M ⋯ N) [ ρ ]c = $⟵ M [ ρ ]c ⋯ N [ ext ρ ]c
   (V !) [ ρ ]c = V [ ρ ]v !
+  ($≔ V ⋯ M) [ ρ ]c = $≔ V [ ρ ]v ⋯ M [ ext (ext ρ) ]c
+  ⟨ M₁ , M₂ ⟩ [ ρ ]c = ⟨ M₁ [ ρ ]c , M₂ [ ρ ]c ⟩
+  projl M [ ρ ]c = projl (M [ ρ ]c)
+  projr M [ ρ ]c = projr (M [ ρ ]c)
+  (case V inl⇒ M₁ inr⇒ M₂) [ ρ ]c = case V [ ρ ]v inl⇒ M₁ [ ext ρ ]c inr⇒ M₂ [ ext ρ ]c
 
 infix 8 _[_]v
 infix 8 _[_]c
@@ -50,6 +58,14 @@ mutual
   val-typepres-renaming (typeVar {m = m}) pf rewrite pf m = typeVar
   val-typepres-renaming typeUnit _ = typeUnit
   val-typepres-renaming (typeThunk ⊢M) pf = typeThunk (comp-typepres-renaming ⊢M pf)
+  val-typepres-renaming (typePair ⊢V₁ ⊢V₂) pf =
+    typePair
+      (val-typepres-renaming ⊢V₁ pf)
+      (val-typepres-renaming ⊢V₂ pf)
+  val-typepres-renaming (typeInl ⊢V) pf =
+    typeInl (val-typepres-renaming ⊢V pf)
+  val-typepres-renaming (typeInr ⊢V) pf =
+    typeInr (val-typepres-renaming ⊢V pf)
 
   comp-typepres-renaming : ∀ {ρ : Ren n n′} 
                          → Δ ⊢c M ⦂ B
@@ -80,3 +96,33 @@ mutual
       ext-pf = λ where
                    zero    → refl
                    (suc m) → pf m
+
+  comp-typepres-renaming (typeSplit ⊢V ⊢M) pf =
+    typeSplit
+      (val-typepres-renaming ⊢V pf)
+      (comp-typepres-renaming ⊢M ext-pf)
+    where
+      ext-pf = λ where
+                   zero          → refl
+                   (suc zero)    → refl
+                   (suc (suc m)) → pf m
+  comp-typepres-renaming (typeCpair ⊢M₁ ⊢M₂) pf =
+    typeCpair
+      (comp-typepres-renaming ⊢M₁ pf)
+      (comp-typepres-renaming ⊢M₂ pf)
+  comp-typepres-renaming (typeProjl ⊢M) pf =
+    typeProjl (comp-typepres-renaming ⊢M pf)
+  comp-typepres-renaming (typeProjr ⊢M) pf =
+    typeProjr (comp-typepres-renaming ⊢M pf)
+  comp-typepres-renaming (typeCase ⊢V ⊢M₁ ⊢M₂) pf =
+    typeCase
+      (val-typepres-renaming ⊢V pf)
+      (comp-typepres-renaming ⊢M₁ ext-pf₁)
+      (comp-typepres-renaming ⊢M₂ ext-pf₂)
+    where
+      ext-pf₁ = λ where
+                    zero    → refl
+                    (suc m) → pf m
+      ext-pf₂ = λ where
+                    zero    → refl
+                    (suc m) → pf m

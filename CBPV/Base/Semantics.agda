@@ -11,16 +11,24 @@ mutual
 
     clos⦅_,⟪_⟫⦆ : Env n → Comp n → ClosVal
 
+    ⟨_,_⟩ : ClosVal → ClosVal → ClosVal
+
+    inl : ClosVal → ClosVal
+
+    inr : ClosVal → ClosVal
+
   data ClosTerminal : Set where
     return_ : ClosVal → ClosTerminal
 
     clos⦅_,ƛ_⦆ : Env n → Comp (suc n) → ClosTerminal
 
+    clos⦅_,⟨_,_⟩⦆ : Env n → Comp n → Comp n → ClosTerminal
+
   Env : ℕ → Set
   Env n = Fin n → ClosVal
 
-variable W W′ : ClosVal
-variable T T′ : ClosTerminal
+variable W W′ W₁ W₂ : ClosVal
+variable T T′ T₁ T₂ : ClosTerminal
 variable ρ ρ′ : Env n
 
 ∅ᵨ : Env zero
@@ -28,8 +36,8 @@ variable ρ ρ′ : Env n
 
 _∷ᵨ_ : Env n → ClosVal → Env (suc n)
 ρ ∷ᵨ W = λ where
-          zero → W
-          (suc n) → ρ n
+             zero → W
+             (suc n) → ρ n
 
 infixl 5 _∷ᵨ_
 
@@ -39,6 +47,19 @@ data _⊢v_⇓_ : Env n → Val n → ClosVal → Set where
   evalUnit : ρ ⊢v unit ⇓ unit
 
   evalThunk : ρ ⊢v ⟪ M ⟫ ⇓ clos⦅ ρ ,⟪ M ⟫⦆
+
+  evalPair : ρ ⊢v V₁ ⇓ W₁
+           → ρ ⊢v V₂ ⇓ W₂
+             ------------------------------
+           → ρ ⊢v ⟨ V₁ , V₂ ⟩ ⇓ ⟨ W₁ , W₂ ⟩
+
+  evalInl : ρ ⊢v V ⇓ W
+            ------------------
+          → ρ ⊢v inl V ⇓ inl W
+
+  evalInr : ρ ⊢v V ⇓ W
+            ------------------
+          → ρ ⊢v inr V ⇓ inr W
 
 infix 4 _⊢v_⇓_
 
@@ -69,5 +90,32 @@ data _⊢c_⇓_ : Env n → Comp n → ClosTerminal → Set where
             → ρ ∷ᵨ W ⊢c N ⇓ T
               -----------------
             → ρ ⊢c $⟵ M ⋯ N ⇓ T
+
+  evalSplit : ρ ⊢v V ⇓ ⟨ W₁ , W₂ ⟩
+            → ρ ∷ᵨ W₁ ∷ᵨ W₂ ⊢c M ⇓ T
+              ----------------------
+            → ρ ⊢c $≔ V ⋯ M ⇓ T
+
+  evalCaseInl : ρ ⊢v V ⇓ inl W
+              → ρ ∷ᵨ W ⊢c M₁ ⇓ T
+                -------------------------------
+              → ρ ⊢c case V inl⇒ M₁ inr⇒ M₂ ⇓ T
+
+  evalCaseInr : ρ ⊢v V ⇓ inr W
+              → ρ ∷ᵨ W ⊢c M₂ ⇓ T
+                -------------------------------
+              → ρ ⊢c case V inl⇒ M₁ inr⇒ M₂ ⇓ T
+
+  evalCpair : ρ ⊢c ⟨ M₁ , M₂ ⟩ ⇓ clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆
+
+  evalProjl : ρ ⊢c M ⇓ clos⦅ ρ′ ,⟨ M₁ , M₂ ⟩⦆
+            → ρ′ ⊢c M₁ ⇓ T
+              ------------------------------
+            → ρ ⊢c projl M ⇓ T
+
+  evalProjr : ρ ⊢c M ⇓ clos⦅ ρ′ ,⟨ M₁ , M₂ ⟩⦆
+            → ρ′ ⊢c M₂ ⇓ T
+              ------------------------------
+            → ρ ⊢c projr M ⇓ T
 
 infix 4 _⊢c_⇓_

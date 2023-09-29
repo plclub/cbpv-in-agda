@@ -10,11 +10,7 @@ module CBPV.Base.Eagerlet where
 
 $⇐_⋯_ : ∀ {n : ℕ} → Comp n → Comp (suc n) → Comp n
 $⇐ return V ⋯ N = N 〔 V 〕
-$⇐ M@(ƛ _) ⋯ N = $⟵ M ⋯ N
-$⇐ M@(_ · _) ⋯ N = $⟵ M ⋯ N
-$⇐ M@(_ » _) ⋯ N = $⟵ M ⋯ N
-$⇐ M@(_ !) ⋯ N = $⟵ M ⋯ N
-$⇐ M@($⟵ _ ⋯ _) ⋯ N = $⟵ M ⋯ N
+$⇐ M ⋯ N = $⟵ M ⋯ N
 
 infixr 4 $⇐_⋯_
 
@@ -30,3 +26,7 @@ typeEagerlet {M = _ · _} = typeLetin
 typeEagerlet {M = _ » _} = typeLetin
 typeEagerlet {M = _ !} = typeLetin
 typeEagerlet {M = $⟵ _ ⋯ _} = typeLetin
+typeEagerlet {M = $≔ _ ⋯ _} = typeLetin
+typeEagerlet {M = projl _} = typeLetin
+typeEagerlet {M = projr _} = typeLetin
+typeEagerlet {M = case _ inl⇒ _ inr⇒ _} = typeLetin
