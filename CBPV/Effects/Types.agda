@@ -13,4 +13,7 @@ mutual
     _⇒_ : ValType → CompType → CompType
     𝑭 : ValType → CompType
 
+variable A : ValType
+variable B : CompType
+
 infixr 7 _⇒_

@@ -13,37 +13,36 @@ open import CBPV.Base.Types
 module CBPV.Base.TypeSoundness where
 
 mutual
-  fundamental-lemma-val : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n}
-                            {A : ValType}
-                        → Γ ⊢v V ⦂ A
+  fundamental-lemma-val : Γ ⊢v V ⦂ A
                         → Γ ⊨v V ⦂ A
   fundamental-lemma-val typeVar = semanticVar
   fundamental-lemma-val typeUnit = semanticUnit
-  fundamental-lemma-val (typeThunk Γ⊢cM⦂B) =
-    semanticThunk (fundamental-lemma-comp Γ⊢cM⦂B)
+  fundamental-lemma-val (typeThunk ⊢M) =
+    semanticThunk (fundamental-lemma-comp ⊢M)
 
-  fundamental-lemma-comp : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n}
-                             {B : CompType}
-                         → Γ ⊢c M ⦂ B
+  fundamental-lemma-comp : Γ ⊢c M ⦂ B
                          → Γ ⊨c M ⦂ B
-  fundamental-lemma-comp (typeAbs Γ∷A⊢M⦂B) =
-    semanticAbs (fundamental-lemma-comp Γ∷A⊢M⦂B)
-  fundamental-lemma-comp (typeApp Γ⊢M⦂A⇒B Γ⊢V⦂A) =
-    semanticApp (fundamental-lemma-comp Γ⊢M⦂A⇒B) (fundamental-lemma-val Γ⊢V⦂A)
-  fundamental-lemma-comp (typeSequence Γ⊢V⦂𝟙 Γ⊢M⦂B) =
-    semanticSeq (fundamental-lemma-val Γ⊢V⦂𝟙) (fundamental-lemma-comp Γ⊢M⦂B)
-  fundamental-lemma-comp (typeForce Γ⊢V⦂𝑼B) =
-    semanticForce (fundamental-lemma-val Γ⊢V⦂𝑼B)
-  fundamental-lemma-comp (typeRet Γ⊢V⦂A) =
-    semanticRet (fundamental-lemma-val Γ⊢V⦂A)
-  fundamental-lemma-comp (typeLetin Γ⊢M⦂𝑭A Γ∷A⊢N⦂B) =
-    semanticLetin
-      (fundamental-lemma-comp Γ⊢M⦂𝑭A)
-      (fundamental-lemma-comp Γ∷A⊢N⦂B)
+  fundamental-lemma-comp (typeAbs ⊢M) =
+    semanticAbs (fundamental-lemma-comp ⊢M)
+  fundamental-lemma-comp (typeApp ⊢M ⊢V) =
+    semanticApp
+      (fundamental-lemma-comp ⊢M)
+      (fundamental-lemma-val ⊢V)
+  fundamental-lemma-comp (typeSequence {B = B} ⊢V ⊢M) =
+    semanticSeq {B = B}
+      (fundamental-lemma-val ⊢V)
+      (fundamental-lemma-comp ⊢M)
+  fundamental-lemma-comp (typeForce ⊢V) =
+    semanticForce (fundamental-lemma-val ⊢V)
+  fundamental-lemma-comp (typeRet ⊢V) =
+    semanticRet (fundamental-lemma-val ⊢V)
+  fundamental-lemma-comp (typeLetin {B = B} ⊢M ⊢N) =
+    semanticLetin {B = B}
+      (fundamental-lemma-comp ⊢M)
+      (fundamental-lemma-comp ⊢N)
 
-type-soundness : ∀ {M : Comp zero} {B : CompType}
-               → ∅ ⊢c M ⦂ B
-               → ∃[ T ] ∅ᵨ ∣ M ⇓c T
-type-soundness ∅⊢cM⦂B
-  with fundamental-lemma-comp ∅⊢cM⦂B (λ ())
-...  | T , ∅ᵨ∣M⇓cT , _ = T , ∅ᵨ∣M⇓cT
+type-soundness : ∅ ⊢c M ⦂ B
+               → ∃[ T ] ∅ᵨ ⊢c M ⇓ T
+type-soundness ⊢M
+  with fundamental-lemma-comp ⊢M (λ ())
+...  | T , M⇓ , _                       = T , M⇓

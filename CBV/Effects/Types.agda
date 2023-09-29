@@ -7,3 +7,5 @@ open Effect E
 data Type : Set where
   𝟙 : Type
   _─_⟶_ : Type → Eff → Type → Type
+
+variable τ τ′ τ₁ τ₂ : Type

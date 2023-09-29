@@ -3,6 +3,9 @@ open import Data.Nat using (ℕ; suc)
 
 module CBPV.Effects.Terms where
 
+variable n n′ : ℕ
+variable m : Fin n
+
 mutual
   data Val (n : ℕ) : Set where
     ♯_ : Fin n → Val n
@@ -17,6 +20,9 @@ mutual
     return_ : Val n → Comp n
     $⟵_⋯_ : Comp n → Comp (suc n) → Comp n
     tick : Comp n
+
+variable V V′ : Val n
+variable M M′ M″ N N′ : Comp n
 
 infix 5 ƛ_
 infixl 7 _»_

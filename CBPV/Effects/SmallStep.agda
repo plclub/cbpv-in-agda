@@ -2,12 +2,12 @@ import Relation.Binary.PropositionalEquality as Eq
 open import Data.Nat using (ℕ; suc)
 open Eq using (sym)
 
-open import CBPV.Effects.Substitution
 open import CBPV.Effects.Terms
 open import Effects
 
 module CBPV.Effects.SmallStep (E : Effect) where
 
+open import CBPV.Effects.Substitution E
 open Effect E
 open Effects.Properties E
 

@@ -14,44 +14,40 @@ open Effect E
 open Properties E
 
 mutual
-  fundamental-lemma-val : ∀ {n : ℕ} {Γ : Ctx n} {V : Val n}
-                            {A : ValType}
-                        → Γ ⊢v V ⦂ A
+  fundamental-lemma-val : Γ ⊢v V ⦂ A
                         → Γ ⊨v V ⦂ A
   fundamental-lemma-val typeVar = semanticVar
   fundamental-lemma-val typeUnit = semanticUnit
-  fundamental-lemma-val (typeThunk Γ⊢⟪M⟫⦂A) {ρ} =
-    semanticThunk (fundamental-lemma-comp Γ⊢⟪M⟫⦂A)
+  fundamental-lemma-val (typeThunk ⊢M) =
+    semanticThunk (fundamental-lemma-comp ⊢M)
 
-  fundamental-lemma-comp : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {B : CompType}
-                             {φ : Eff}
-                         → Γ ⊢c M ⦂ B # φ
+  fundamental-lemma-comp : Γ ⊢c M ⦂ B # φ
                          → Γ ⊨c M ⦂ B # φ
-  fundamental-lemma-comp (typeAbs Γ⊢M⦂B#φ) =
-    semanticAbs (fundamental-lemma-comp Γ⊢M⦂B#φ)
-  fundamental-lemma-comp (typeApp Γ⊢M⦂B#φ Γ⊢V⦂A) =
-    semanticApp (fundamental-lemma-comp Γ⊢M⦂B#φ) (fundamental-lemma-val Γ⊢V⦂A)
-  fundamental-lemma-comp (typeSequence Γ⊢V⦂𝟙 Γ⊢M⦂B#φ) =
-    semanticSequence
-      (fundamental-lemma-val Γ⊢V⦂𝟙)
-      (fundamental-lemma-comp Γ⊢M⦂B#φ)
-  fundamental-lemma-comp (typeForce Γ⊢V⦂𝑼φ′B φ′≤φ) =
-    semanticForce (fundamental-lemma-val Γ⊢V⦂𝑼φ′B) φ′≤φ
-  fundamental-lemma-comp (typeRet Γ⊢V⦂A) =
-    semanticRet (fundamental-lemma-val Γ⊢V⦂A)
-  fundamental-lemma-comp (typeLetin Γ⊢M⦂𝑭A#φ₁ Γ∷A⊢N⦂B#φ₂ φ₁+φ₂≤φ) =
-    semanticLetin
-      (fundamental-lemma-comp Γ⊢M⦂𝑭A#φ₁)
-      (fundamental-lemma-comp Γ∷A⊢N⦂B#φ₂)
+  fundamental-lemma-comp (typeAbs ⊢M) =
+    semanticAbs (fundamental-lemma-comp ⊢M)
+  fundamental-lemma-comp (typeApp ⊢M ⊢V) =
+    semanticApp
+      (fundamental-lemma-comp ⊢M)
+      (fundamental-lemma-val ⊢V)
+  fundamental-lemma-comp (typeSequence {B = B} ⊢V ⊢M) =
+    semanticSequence {B = B}
+      (fundamental-lemma-val ⊢V)
+      (fundamental-lemma-comp ⊢M)
+  fundamental-lemma-comp (typeForce ⊢V φ′≤φ) =
+    semanticForce (fundamental-lemma-val ⊢V) φ′≤φ
+  fundamental-lemma-comp (typeRet ⊢V) =
+    semanticRet (fundamental-lemma-val ⊢V)
+  fundamental-lemma-comp (typeLetin {B = B} ⊢M ⊢N φ₁+φ₂≤φ) =
+    semanticLetin {B = B}
+      (fundamental-lemma-comp ⊢M)
+      (fundamental-lemma-comp ⊢N)
       φ₁+φ₂≤φ
-  fundamental-lemma-comp (typeTick tock≤φ) = semanticTick tock≤φ
+  fundamental-lemma-comp (typeTick tock≤φ) =
+    semanticTick tock≤φ
 
-effect-soundness : ∀ {M : Comp zero} {B : CompType} {φ : Eff}
-                 → ∅ ⊢c M ⦂ B # φ
-                 → ∃[ T ] ∃[ φ′ ] φ′ ≤ φ × ∅ᵨ ∣ M ⇓c T # φ′
-effect-soundness ∅⊢cM⦂B#φ
-  with fundamental-lemma-comp ∅⊢cM⦂B#φ (λ ())
-...  | T , φ′ , _ , ∅ᵨ∣M⇓cT#φ′ , _ , φ′+φ″≤φ =
-  T , φ′ , subeff-lemma ,  ∅ᵨ∣M⇓cT#φ′
-  where
-    subeff-lemma = ≤-+-invertʳ φ′+φ″≤φ
+effect-soundness : ∅ ⊢c M ⦂ B # φ
+                 → ∃[ T ] ∃[ φ′ ] φ′ ≤ φ × ∅ᵨ ⊢c M ⇓ T # φ′
+effect-soundness ⊢M
+  with fundamental-lemma-comp ⊢M (λ ())
+...  | T , φ′ , _ , M⇓ , _ , φ′+φ″≤φ =
+  T , φ′ , ≤-+-invertʳ φ′+φ″≤φ , M⇓

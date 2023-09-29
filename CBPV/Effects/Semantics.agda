@@ -22,6 +22,10 @@ mutual
   Env : ℕ → Set
   Env n = Fin n → ClosVal
 
+variable W W′ : ClosVal
+variable T T′ : ClosTerminal
+variable ρ ρ′ : Env n
+
 ∅ᵨ : Env zero
 ∅ᵨ ()
 
@@ -32,56 +36,42 @@ _∷ᵨ_ : ∀ {n : ℕ} → Env n → ClosVal → Env (suc n)
 
 infixl 5 _∷ᵨ_
 
-data _∣_⇓v_ {n : ℕ} (ρ : Env n) : Val n → ClosVal → Set where
-  evalVar : ∀ {m : Fin n} {W : ClosVal}
-            -------------
-          → ρ ∣ ♯ m ⇓v ρ m
+data _⊢v_⇓_ : Env n → Val n → ClosVal → Set where
+  evalVar : ρ ⊢v ♯ m ⇓ ρ m
 
-  evalUnit : ρ ∣ unit ⇓v unit
+  evalUnit : ρ ⊢v unit ⇓ unit
 
-  evalThunk : ∀ {M : Comp n}
-              --------------------------
-            → ρ ∣ ⟪ M ⟫ ⇓v clos⦅ ρ ,⟪ M ⟫⦆
+  evalThunk : ρ ⊢v ⟪ M ⟫ ⇓ clos⦅ ρ ,⟪ M ⟫⦆
 
-data _∣_⇓c_#_ {n : ℕ} (ρ : Env n) : Comp n → ClosTerminal → Eff → Set where
-  evalAbs : ∀ {M : Comp (suc n)}
+data _⊢c_⇓_#_ : Env n → Comp n → ClosTerminal → Eff → Set where
+  evalAbs : ρ ⊢c ƛ M ⇓ clos⦅ ρ ,ƛ M ⦆ # pure
+
+  evalRet : ρ ⊢v V ⇓ W
             ------------------------------
-          → ρ ∣ ƛ M ⇓c clos⦅ ρ ,ƛ M ⦆ # pure
+          → ρ ⊢c return V ⇓ return W # pure
 
-  evalRet : ∀ {V : Val n} {W : ClosVal}
-          → ρ ∣ V ⇓v W
-            ------------------------------
-          → ρ ∣ return V ⇓c return W # pure
-
-  evalSeq : ∀ {V : Val n} {M : Comp n} {T : ClosTerminal} {φ : Eff}
-          → ρ ∣ V ⇓v unit
-          → ρ ∣ M ⇓c T # φ
+  evalSeq : ρ ⊢v V ⇓ unit
+          → ρ ⊢c M ⇓ T # φ
             ------------------
-          → ρ ∣ V » M ⇓c T # φ
+          → ρ ⊢c V » M ⇓ T # φ
 
-  evalApp : ∀ {m : ℕ} {M : Comp n} {ρ′ : Env m} {M′ : Comp (suc m)} {V : Val n}
-              {W : ClosVal} {T : ClosTerminal} {φ₁ φ₂ : Eff}
-          → ρ ∣ M ⇓c clos⦅ ρ′ ,ƛ M′ ⦆ # φ₁
-          → ρ ∣ V ⇓v W
-          → ρ′ ∷ᵨ W ∣ M′ ⇓c T # φ₂
+  evalApp : ρ ⊢c M ⇓ clos⦅ ρ′ ,ƛ M′ ⦆ # φ₁
+          → ρ ⊢v V ⇓ W
+          → ρ′ ∷ᵨ W ⊢c M′ ⇓ T # φ₂
             -----------------------------
-          → ρ ∣ M · V ⇓c T # φ₁ + φ₂
+          → ρ ⊢c M · V ⇓ T # φ₁ + φ₂
 
-  evalForce : ∀ {m : ℕ} {V : Val n} {ρ′ : Env m} {M : Comp m}
-                {T : ClosTerminal} {φ : Eff}
-            → ρ ∣ V ⇓v clos⦅ ρ′ ,⟪ M ⟫⦆
-            → ρ′ ∣ M ⇓c T # φ
+  evalForce : ρ ⊢v V ⇓ clos⦅ ρ′ ,⟪ M ⟫⦆
+            → ρ′ ⊢c M ⇓ T # φ
               -----------------
-            → ρ ∣ V ! ⇓c T # φ
+            → ρ ⊢c V ! ⇓ T # φ
 
-  evalLetin : ∀ {M : Comp n} {W : ClosVal} {T : ClosTerminal}
-                {N : Comp (suc n)} {φ₁ φ₂ : Eff}
-            → ρ ∣ M ⇓c return W # φ₁
-            → ρ ∷ᵨ W ∣ N ⇓c T # φ₂
+  evalLetin : ρ ⊢c M ⇓ return W # φ₁
+            → ρ ∷ᵨ W ⊢c N ⇓ T # φ₂
               ---------------------------
-            → ρ ∣ $⟵ M ⋯ N ⇓c T # φ₁ + φ₂
+            → ρ ⊢c $⟵ M ⋯ N ⇓ T # φ₁ + φ₂
 
-  evalTick : ρ ∣ tick ⇓c return unit # tock
+  evalTick : ρ ⊢c tick ⇓ return unit # tock
 
-infix 4 _∣_⇓v_
-infix 4 _∣_⇓c_#_
+infix 4 _⊢v_⇓_
+infix 4 _⊢c_⇓_#_

@@ -10,38 +10,33 @@ open import CBN.Base.SyntacticTyping
 open import CBN.Base.Terms
 open import CBN.Base.Types
 open import CBPV.Base.Renaming
-open import CBPV.Base.Terms
+open import CBPV.Base.Terms hiding (n; m)
 open import CBPV.Base.Types
-open CBPV hiding (Ctx; _∷_)
+open CBPV hiding (Ctx; _∷_; Γ)
 
 module CBN.Base.Translation where
 
 postulate
   extensionality : Extensionality 0ℓ 0ℓ
 
-data _↦_ {n : ℕ} : Term n → Comp n → Set where
-  transVar : ∀ {m : Fin n}
-             ------------
-           → # m ↦ # m !
+data _↦_ : Term n → Comp n → Set where
+  transVar : # m ↦ # m !
 
-  transUnit : unit ↦ return unit
+  transUnit : unit {n} ↦ return unit
 
-  transAbs : ∀ {e : Term (suc n)} {M : Comp (suc n)}
-           → e ↦ M
+  transAbs : e ↦ M
              ---------
            → ƛ e ↦ ƛ M
 
-  transApp : ∀ {e1 e2 : Term n} {M N : Comp n}
-           → e1 ↦ M
-           → e2 ↦ N
+  transApp : e₁ ↦ M
+           → e₂ ↦ N
              --------------------
-           → e1 · e2 ↦ M · ⟪ N ⟫
+           → e₁ · e₂ ↦ M · ⟪ N ⟫
 
-  transSeq : ∀ {e1 e2 : Term n} {M N : Comp n}
-           → e1 ↦ M
-           → e2 ↦ N
+  transSeq : e₁ ↦ M
+           → e₂ ↦ N
              ---------------------------------------
-           → e1 » e2 ↦ $⟵ M ⋯ (# zero) » N [ suc ]c
+           → e₁ » e₂ ↦  $⟵ M ⋯ (# zero) » N [ suc ]c
 
 infix 3 _↦_
 
@@ -68,44 +63,40 @@ instance
     $⟵ ⟦ e₁ ⟧ ⋯
     (# zero) » ⟦ e₂ ⟧ [ suc ]c
 
-⟦Γ∷τ⟧-expand : ∀ {n : ℕ} {Γ : Ctx n} {τ : Type}
-               → ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 ⟦ τ ⟧
+⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 ⟦ τ ⟧
 ⟦Γ∷τ⟧-expand = extensionality λ where
                                   zero    → refl
                                   (suc m) → refl
 
-↦-preserves : ∀ {n : ℕ} {e : Term n} {M : Comp n}
-                    {Γ : Ctx n} {τ : Type}
-            → e ↦ M
+↦-preserves : e ↦ M
             → Γ ⊢ e ⦂ τ
               ------------------
             → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧
 ↦-preserves transVar typeVar = typeForce typeVar
 ↦-preserves transUnit typeUnit = typeRet typeUnit
-↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} Γ∷τ⊢e⦂τ′)
-  with ↦-preserves e↦M Γ∷τ⊢e⦂τ′
+↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} ⊢e)
+  with ↦-preserves e↦M ⊢e
 ...  | ih
   rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ}) = typeAbs ih
-↦-preserves (transApp e₁↦M e₂↦N) (typeApp Γ⊢e₁⦂τ′⇒τ Γ⊢e₂⦂τ′) =
+↦-preserves (transApp e₁↦M e₂↦N) (typeApp ⊢e₁ ⊢e₂) =
   typeApp
-    (↦-preserves e₁↦M Γ⊢e₁⦂τ′⇒τ)
-    (typeThunk (↦-preserves e₂↦N Γ⊢e₂⦂τ′))
-↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq Γ⊢e₁⦂𝟙 Γ⊢e₂⦂τ) =
+    (↦-preserves e₁↦M ⊢e₁)
+    (typeThunk (↦-preserves e₂↦N ⊢e₂))
+↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq ⊢e₁ ⊢e₂) =
   typeLetin
-    (↦-preserves e₁↦M Γ⊢e₁⦂𝟙)
+    (↦-preserves e₁↦M ⊢e₁)
     (typeSequence
       typeVar
-      (comp-typepres-renaming (↦-preserves e₂↦N Γ⊢e₂⦂τ) λ{_ → refl}))
+      (comp-typepres-renaming (↦-preserves e₂↦N ⊢e₂) λ{_ → refl}))
 
-e↦⟦e⟧ : ∀ {n : ℕ} {e : Term n} → e ↦ ⟦ e ⟧
+e↦⟦e⟧ : e ↦ ⟦ e ⟧
 e↦⟦e⟧ {e = # x} = transVar
 e↦⟦e⟧ {e = unit} = transUnit
 e↦⟦e⟧ {e = ƛ e} = transAbs e↦⟦e⟧
 e↦⟦e⟧ {e = e₁ · e₂} = transApp e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = e₁ » e₂} = transSeq e↦⟦e⟧ e↦⟦e⟧
 
-translation-preservation : ∀ {n : ℕ} {Γ : Ctx n} {e : Term n} {τ : Type}
-                         → Γ ⊢ e ⦂ τ
+translation-preservation : Γ ⊢ e ⦂ τ
                            ----------------------
                          → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ ⟦ τ ⟧
 translation-preservation = ↦-preserves e↦⟦e⟧

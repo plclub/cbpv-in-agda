@@ -1,12 +1,12 @@
 open import Data.Fin using (suc; zero)
 open import Data.Nat using (ℕ; suc)
 
-open import CBPV.Effects.Substitution
 open import CBPV.Effects.Terms
 open import Effects
 
 module CBPV.Effects.Eagerlet (E : Effect) where
 
+open import CBPV.Effects.Substitution E
 open import CBPV.Effects.SyntacticTyping E
 open import CBPV.Effects.Types E
 open Effect E

@@ -12,54 +12,48 @@ open Effect E
 Ctx : ℕ → Set
 Ctx n = Fin n → Type
 
+variable Γ : Ctx n
+
 ∅ : Ctx zero
 ∅ ()
 
-_∷_ : ∀ {n : ℕ} → Ctx n → Type → Ctx (suc n)
+_∷_ : Ctx n → Type → Ctx (suc n)
 Γ ∷ τ = λ where
           zero → τ
           (suc n) → Γ n
 
 infixl 5 _∷_
 
-data _⊢_⦂_ {n : ℕ} (Γ : Ctx n) : Term n → Type → Set where
-  typeVar : {m : Fin n}
-            -------------
-          → Γ ⊢ # m ⦂ Γ m
+data _⊢_⦂_ : Ctx n → Term n → Type → Set where
+  typeVar : Γ ⊢ # m ⦂ Γ m
 
   typeUnit : Γ ⊢ unit ⦂ 𝟙
 
-  typeAbs : {τ τ′ : Type} {e : Term (suc n)}
-          → Γ ∷ τ ⊢ e ⦂ τ′
+  typeAbs : Γ ∷ τ ⊢ e ⦂ τ′
             ----------------
           → Γ ⊢ ƛ e ⦂ τ ⇒ τ′
 
-  typeApp : ∀ {e₁ e₂ : Term n} {τ τ′ : Type}
-          → Γ ⊢ e₁ ⦂ τ′ ⇒ τ
+  typeApp : Γ ⊢ e₁ ⦂ τ′ ⇒ τ
           → Γ ⊢ e₂ ⦂ τ′
             ---------------
           → Γ ⊢ e₁ · e₂ ⦂ τ
 
-  typeSeq : ∀ {e₁ e₂ : Term n} {τ : Type}
-          → Γ ⊢ e₁ ⦂ 𝟙
+  typeSeq : Γ ⊢ e₁ ⦂ 𝟙
           → Γ ⊢ e₂ ⦂ τ
             ---------------
           → Γ ⊢ e₁ » e₂ ⦂ τ
 
-  typeReturn : ∀ {e : Term n} {τ : Type} {φ : Eff}
-             → Γ ⊢ e ⦂ τ
+  typeReturn : Γ ⊢ e ⦂ τ
                --------------------
              → Γ ⊢ return e ⦂ 𝑻 φ τ
 
-  typeBind : ∀ {e₁ : Term n} {e₂ : Term (suc n)} {φ₁ φ₂ φ : Eff} {τ τ′ : Type}
-           → Γ ⊢ e₁ ⦂ 𝑻 φ₁ τ′
+  typeBind : Γ ⊢ e₁ ⦂ 𝑻 φ₁ τ′
            → Γ ∷ τ′ ⊢ e₂ ⦂ 𝑻 φ₂ τ
            → φ₁ + φ₂ ≤ φ
              -----------------------
            → Γ ⊢ $⟵ e₁ ⋯ e₂ ⦂ 𝑻 φ τ
 
-  typeTick : ∀ {φ : Eff}
-           → tock ≤ φ
+  typeTick : tock ≤ φ
              ----------------
            → Γ ⊢ tick ⦂ 𝑻 φ 𝟙
 

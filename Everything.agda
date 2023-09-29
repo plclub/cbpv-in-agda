@@ -2,9 +2,10 @@ module Everything where
 
 {- Section 2 -}
 import CBPV.Base.SyntacticTyping
-import CBPV.Base.Semantics
 
 {- Section 2.1 -}
+import CBPV.Base.Semantics
+import CBPV.Base.Determinism
 import CBPV.Base.SemanticTyping
 import CBPV.Base.TypeSoundness
 

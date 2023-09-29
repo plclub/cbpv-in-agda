@@ -18,16 +18,14 @@ $⇐ M@($⟵ _ ⋯ _) ⋯ N = $⟵ M ⋯ N
 
 infixr 4 $⇐_⋯_
 
-typeEagerlet : ∀ {n : ℕ} {Γ : Ctx n} {M : Comp n} {A : ValType}
-                   {N : Comp (suc n)} {B : CompType}
-               → Γ ⊢c M ⦂ 𝑭 A
-               → Γ ∷ A ⊢c N ⦂ B
-                 -----------------
-               → Γ ⊢c $⇐ M ⋯ N ⦂ B
-typeEagerlet {M = return V} (typeRet Γ⊢V⦂A) Γ∷A⊢N⦂B =
-  comp-typepres-substitution Γ∷A⊢N⦂B λ where
-                                         zero    → Γ⊢V⦂A
-                                         (suc m) → typeVar
+typeEagerlet : Γ ⊢c M ⦂ 𝑭 A
+             → Γ ∷ A ⊢c N ⦂ B
+               -----------------
+             → Γ ⊢c $⇐ M ⋯ N ⦂ B
+typeEagerlet {M = return V} (typeRet ⊢V) ⊢N =
+  comp-typepres-substitution ⊢N λ where
+                                    zero    → ⊢V
+                                    (suc m) → typeVar
 typeEagerlet {M = _ · _} = typeLetin
 typeEagerlet {M = _ » _} = typeLetin
 typeEagerlet {M = _ !} = typeLetin
