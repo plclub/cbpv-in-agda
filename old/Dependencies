@@ -1,0 +1,24 @@
+if [[ $@ = *"-v"* ]]; then
+      echo "
+      Require dpdgraph.dpdgraph. \
+      Require Export CBPV.Termination. \
+      Print FileDependGraph  \
+      CBPV.Semantics CBPV.TAlgebra CBPV.SyntacticTyping CBPV.SemanticTyping \
+      CBPV.DenotationalSemantics \
+      CBPV.ProgramContexts CBPV.LogicalEquivalence CBPV.LogicalRelation CBPV.Termination." \
+      | coqtop -R . CBPV > /dev/null
+else 
+      echo "Require dpdgraph.dpdgraph. \
+            Require Export CBPV.CBN.DenotationalSemantics CBPV.Termination. \
+            Print FileDependGraph  \
+            CBPV.Confluence \
+   	    CBPV.CBN.CBN_CBPV \
+	    CBPV.CBN.DenotationalSemantics." \
+      | coqtop -R . CBPV > /dev/null
+fi
+
+
+dpd2dot graph.dpd > /dev/null
+rm graph.dpd
+dot -Tsvg graph.dot > graph.svg
+rm graph.dot
