@@ -21,7 +21,7 @@ postulate
 Sub : ℕ → ℕ → Set
 Sub n n′ = (m : Fin n′) → Val n
 
-variable σ : Sub n n′
+variable σ τ : Sub n n′
 
 exts : ∀ {n n′ : ℕ} → Sub n n′ → Sub (suc n) (suc n′)
 exts σ zero = # zero
@@ -492,6 +492,21 @@ subst-zero-exts-cons σ V =
     V • (σ ⨟ id)
     ≡⟨ cong-cons refl (extensionality (λ x → sub-id-val (σ x))) ⟩
     V • σ
+  ∎
+
+exts-seq-cons : ∀ {m : ℕ} (σ : Sub m n′) (V : Val n) (τ : Sub n m)
+              → exts σ ⨟ (V • τ) ≡ V • (σ ⨟ τ)
+exts-seq-cons σ V τ =
+  begin
+    exts σ ⨟ (V • τ)
+  ≡⟨ cong-seq (exts-cons-shift σ) refl ⟩
+    (# zero • (σ ⨟ ↑)) ⨟ (V • τ)
+  ≡⟨ sub-dist (σ ⨟ ↑) (V • τ) (# zero) ⟩
+    V • ((σ ⨟ ↑) ⨟ V • τ)
+  ≡⟨ cong-cons refl (sub-assoc σ ↑ (V • τ)) ⟩
+    V • (σ ⨟ ↑ ⨟ V • τ)
+  ≡⟨ cong-cons refl (cong-seq {σ = σ} refl (sub-tail τ V)) ⟩
+    V • (σ ⨟ τ)
   ∎
 
 mutual

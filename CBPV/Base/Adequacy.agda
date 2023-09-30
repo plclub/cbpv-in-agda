@@ -4,8 +4,7 @@ open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.Product using (∃-syntax; _×_; _,_)
 open import Data.Unit using (⊤; tt)
-open Eq using (_≡_; refl; sym; subst)
-open Eq.≡-Reasoning using (step-≡; begin_) renaming (_∎ to _qed)
+open Eq using (_≡_; refl; sym; subst; trans)
 
 open import CBPV.Base.Semantics
 open import CBPV.Base.SmallStep
@@ -103,32 +102,15 @@ mutual
     with ⇓-adequate (~-ext (~-ext ρ~σ W₁≈V₁) W₂≈V₂) M⇓
   ...  | N , M⟶ , T≈N =
     N ,
-    (βsplit ⟶⟨ subst (λ x → x ⟶* N) (sym substitution-lemma) M⟶ ⟩) ,
+    (βsplit ⟶⟨ subst (_⟶* N) subst-lemma M⟶ ⟩) ,
     T≈N
     where
-      substitution-lemma = begin
-                             M ⦅ exts (exts σ) ⦆c ⦅ V₂ • V₁ • id ⦆c
-                           ≡⟨ sub-sub (exts (exts σ)) (V₂ • V₁ • id) M ⟩
-                             M ⦅ exts (exts σ) ⨟ V₂ • V₁ • id ⦆c
-                           ≡⟨ cong-sub (cong-seq (exts-cons-shift (exts σ)) refl) refl ⟩
-                             M ⦅ # zero • (exts σ ⨟ ↑) ⨟ V₂ • V₁ • id ⦆c
-                           ≡⟨ cong-sub (sub-dist (exts σ ⨟ ↑) (V₂ • V₁ • id) (# zero)) refl ⟩
-                             M ⦅ V₂ • ((exts σ ⨟ ↑) ⨟ (V₂ • V₁ • id)) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (sub-assoc (exts σ) ↑ (V₂ • V₁ • id))) refl ⟩
-                             M ⦅ V₂ • (exts σ ⨟ (↑ ⨟ (V₂ • V₁ • id))) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (cong-seq {σ = exts σ} refl (sub-tail (V₁ • id) V₂))) refl ⟩
-                             M ⦅ V₂ • (exts σ ⨟ V₁ • id) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (cong-seq (exts-cons-shift σ) refl)) refl ⟩
-                             M ⦅ V₂ • (# zero • (σ ⨟ ↑) ⨟ (V₁ • id)) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (sub-dist (σ ⨟ ↑) (V₁ • id) (# zero))) refl ⟩
-                             M ⦅ V₂ • V₁ • ((σ ⨟ ↑) ⨟ (V₁ • id)) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (cong-cons refl (sub-assoc σ ↑ (V₁ • id)))) refl ⟩
-                             M ⦅ V₂ • V₁ • (σ ⨟ (↑ ⨟ V₁ • id)) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (cong-cons refl (cong-seq {σ = σ} refl (sub-tail id V₁)))) refl ⟩
-                             M ⦅ V₂ • V₁ • (σ ⨟ id) ⦆c
-                           ≡⟨ cong-sub (cong-cons refl (cong-cons refl (sub-idR))) refl ⟩
-                             M ⦅ V₂ • V₁ • σ ⦆c
-                           qed
+      subst-lemma : M ⦅ V₂ • V₁ • σ ⦆c ≡ (M ⦅ exts (exts σ) ⦆c) ⦅ V₂ • V₁ • id ⦆c
+      subst-lemma
+        rewrite sub-sub (exts (exts σ)) (V₂ • V₁ • id) M
+              | exts-seq-cons (exts σ) V₂ (V₁ • id)
+              | exts-seq-cons σ V₁ id
+              | sub-idR {σ = σ}                          = refl
   ⇓-adequate {σ = σ} ρ~σ (evalCaseInl {V = V} {M₁ = M₁} V⇓ M₁⇓)
     with V ⦅ σ ⦆v in eq | ⇓-adequate-val ρ~σ V⇓
   ...  | inl V         | W≈V
