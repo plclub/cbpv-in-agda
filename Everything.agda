@@ -15,6 +15,7 @@ import CBN.Base.Translation
 import CBV.Base.Translation
 
 {- Section 3 -}
+import Effects
 import CBPV.Effects.SyntacticTyping
 
 {- Section 3.1 -}
