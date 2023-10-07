@@ -56,8 +56,8 @@ instance
       ♯ zero » ⟦ e₂ ⟧ [ suc ]c
     Translation.⟦ ⟦Exp⟧ ⟧ (return e) = return ⟪ ⟦ e ⟧ ⟫
     Translation.⟦ ⟦Exp⟧ ⟧ ($⟵ e₁ ⋯ e₂) =
-      return ⟪ $⟵ $⟵ ⟦ e₁ ⟧ ⋯ ♯ zero ! ⋯ $⟵ ⟦ e₂ ⟧ ⋯ ♯ zero ! ⟫
-    Translation.⟦ ⟦Exp⟧ ⟧ (tick) = return ⟪ $⟵ tick ⋯ return ♯ zero ⟫
+      return ⟪ $⇐ $⇐ ⟦ e₁ ⟧ ⋯ ♯ zero ! ⋯ $⇐ ⟦ e₂ ⟧ ⋯ ♯ zero ! ⟫
+    Translation.⟦ ⟦Exp⟧ ⟧ (tick) = return ⟪ $⇐ tick ⋯ return ♯ zero ⟫
 
 ⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ ⟦ τ ⟧
 ⟦Γ∷τ⟧-expand = extensionality λ where
@@ -111,12 +111,12 @@ mutual
     rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ′} =
     typeRet
       (typeThunk
-        (typeLetin
-          (typeLetin
+        (typeEagerlet
+          (typeEagerlet
             ⊢⟦e₁⟧
             (typeForce typeVar ≤-refl)
             (≡→≤ +-pure-idˡ))
-          (typeLetin
+          (typeEagerlet
             ⊢⟦e₂⟧
             (typeForce typeVar ≤-refl)
             (≡→≤ +-pure-idˡ))
@@ -124,4 +124,4 @@ mutual
   translation-preservation-exp (typeTick tock≤φ) =
     typeRet
       (typeThunk
-        (typeLetin (typeTick tock≤φ) (typeRet typeVar) (≡→≤ +-pure-idʳ)))
+        (typeEagerlet (typeTick tock≤φ) (typeRet typeVar) (≡→≤ +-pure-idʳ)))

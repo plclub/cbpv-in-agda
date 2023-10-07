@@ -14,6 +14,7 @@ module CBN.Monadic.Translation (E : Effect) where
 import CBPV.Effects.SyntacticTyping E as CBPV
 open import CBN.Monadic.SyntacticTyping E as CBN
 open import CBN.Monadic.Types E
+open import CBPV.Effects.Eagerlet E
 open import CBPV.Effects.Renaming E
 open import CBPV.Effects.Types E
 open CBPV hiding (Ctx; _∷_; Γ)
@@ -40,7 +41,7 @@ data _↦_ : Term n → Comp n → Set where
   transSeq : e₁ ↦ M
            → e₂ ↦ N
              ---------------------------------------
-           → e₁ » e₂ ↦ $⟵ M ⋯ (♯ zero) » N [ suc ]c
+           → e₁ » e₂ ↦ $⇐ M ⋯ ♯ zero » N [ suc ]c
 
   transReturn : e ↦ M
                 ----------------------------------
@@ -49,9 +50,9 @@ data _↦_ : Term n → Comp n → Set where
   transBind : e₁ ↦ M
             → e₂ ↦ N
               ---------------------------------------------------------------
-            → $⟵ e₁ ⋯ e₂ ↦ return ⟪ $⟵ $⟵ M ⋯ ♯ zero ! ⋯ $⟵ N ⋯ ♯ zero ! ⟫
+            → $⟵ e₁ ⋯ e₂ ↦ return ⟪ $⇐ $⇐ M ⋯ ♯ zero ! ⋯ $⇐ N ⋯ ♯ zero ! ⟫
 
-  transTick : tick {n} ↦ return ⟪ $⟵ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+  transTick : tick {n} ↦ return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
 
 infix 3 _↦_
 
@@ -76,17 +77,20 @@ instance
   Translation.⟦ ⟦Term⟧ ⟧ (ƛ e) = ƛ ⟦ e ⟧
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ · e₂) = ⟦ e₁ ⟧ · ⟪ ⟦ e₂ ⟧ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ » e₂) =
-    $⟵ ⟦ e₁ ⟧ ⋯
+    $⇐ ⟦ e₁ ⟧ ⋯
     (♯ zero) » ⟦ e₂ ⟧ [ suc ]c
   Translation.⟦ ⟦Term⟧ ⟧ (return e) = return ⟪ return ⟪ ⟦ e ⟧ ⟫ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ ($⟵ e₁ ⋯ e₂) =
     return ⟪
-      $⟵
-        $⟵ ⟦ e₁ ⟧ ⋯
+      $⇐
+        $⇐ ⟦ e₁ ⟧ ⋯
         ♯ zero !
-      ⋯ $⟵ ⟦ e₂ ⟧ ⋯ ♯ zero !
+      ⋯
+      $⇐ ⟦ e₂ ⟧ ⋯
+      ♯ zero !
     ⟫
-  Translation.⟦ ⟦Term⟧ ⟧ tick = return ⟪ $⟵ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
+  Translation.⟦ ⟦Term⟧ ⟧ tick =
+    return ⟪ $⇐ tick ⋯ return ⟪ return ♯ zero ⟫ ⟫
 
 ⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 pure ⟦ τ ⟧
 ⟦Γ∷τ⟧-expand = extensionality λ where
@@ -110,7 +114,7 @@ instance
 ↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq ⊢e₁ ⊢e₂)
   with ↦-preserves e₁↦M ⊢e₁ | ↦-preserves e₂↦N ⊢e₂
 ...  | ⊢M                   | ⊢N                   =
-  typeLetin
+  typeEagerlet
     ⊢M
     (typeSequence typeVar (comp-typepres-renaming ⊢N λ{_ → refl}))
     (≡→≤ +-pure-idʳ)
@@ -124,12 +128,12 @@ instance
   rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ′} =
   typeRet
     (typeThunk
-      (typeLetin
-        (typeLetin
+      (typeEagerlet
+        (typeEagerlet
           ⊢M
           (typeForce typeVar ≤-refl)
           (≡→≤ +-pure-idˡ))
-        (typeLetin
+        (typeEagerlet
           ⊢N
           (typeForce typeVar ≤-refl)
           (≡→≤ +-pure-idˡ))
@@ -137,7 +141,7 @@ instance
 ↦-preserves transTick (typeTick tock≤φ) =
   typeRet
     (typeThunk
-      (typeLetin
+      (typeEagerlet
         (typeTick tock≤φ)
         (typeRet (typeThunk (typeRet typeVar)))
         (≡→≤ +-pure-idʳ)))
