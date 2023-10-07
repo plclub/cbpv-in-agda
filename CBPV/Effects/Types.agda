@@ -8,12 +8,16 @@ mutual
   data ValType : Set where
     𝟙 : ValType
     𝑼 : Eff → CompType → ValType
+    _*_ : ValType → ValType → ValType
+    _∪_ : ValType → ValType → ValType
 
   data CompType : Set where
     _⇒_ : ValType → CompType → CompType
     𝑭 : ValType → CompType
 
-variable A : ValType
+variable A A₁ A₂ : ValType
 variable B : CompType
 
 infixr 7 _⇒_
+infixl 8 _*_
+infixl 8 _∪_

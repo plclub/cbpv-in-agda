@@ -4,7 +4,7 @@ open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.Product using (∃-syntax; _×_; _,_)
 open import Data.Unit using (⊤; tt)
-open Eq using (_≡_; refl; sym)
+open Eq using (_≡_; refl; sym; subst)
 
 open import CBPV.Effects.Terms
 open import Effects
@@ -25,6 +25,9 @@ mutual
   _≈v_ : ClosVal → Val zero → Set
   unit ≈v unit = ⊤
   clos⦅ ρ ,⟪ M ⟫⦆ ≈v V = ∃[ σ ] ρ ~ σ × V ≡ ⟪ M ⦅ σ ⦆c ⟫
+  ⟨ W₁ , W₂ ⟩ ≈v ⟨ V₁ , V₂ ⟩ = W₁ ≈v V₁ × W₂ ≈v V₂
+  inl W ≈v inl V = W ≈v V
+  inr W ≈v inr V = W ≈v V
   _ ≈v _ = ⊥
 
   _≈c_ : ClosTerminal → Comp zero → Set
@@ -47,6 +50,10 @@ mutual
   ⇓-adequate-val ρ~σ (evalVar {m = m}) = ρ~σ m
   ⇓-adequate-val ρ~σ evalUnit = tt
   ⇓-adequate-val {σ = σ} ρ~σ evalThunk = σ , ρ~σ , refl
+  ⇓-adequate-val ρ~σ (evalPair V₁⇓ V₂⇓) =
+    ⇓-adequate-val ρ~σ V₁⇓ , ⇓-adequate-val ρ~σ V₂⇓
+  ⇓-adequate-val ρ~σ (evalInl V⇓) = ⇓-adequate-val ρ~σ V⇓
+  ⇓-adequate-val ρ~σ (evalInr V⇓) = ⇓-adequate-val ρ~σ V⇓
 
   ⇓-adequate : ρ ~ σ
              → ρ ⊢c M ⇓ T # φ
@@ -82,7 +89,7 @@ mutual
     with ⇓-adequate ρ′~σ′ M⇓
   ... | N , φ′ , M⟶* , T≈N , φ′≤φ
     rewrite eq =
-    N , φ′ , (stepForceThunk ⟶⟨ M⟶* ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
+    N , φ′ , (βforceThunk ⟶⟨ M⟶* ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
   ⇓-adequate {σ = σ} ρ~σ (evalLetin {N = N} M⇓ N⇓)
     with ⇓-adequate ρ~σ M⇓
   ... | retV , φ₁′ , M⟶ , W≈V , φ₁′≤φ₁
@@ -94,7 +101,7 @@ mutual
           | sym (sub-sub (exts σ) (subst-zero V) N) =
     N′ ,
     φ₁′ + φ₂′ ,
-    ⟶*-trans (⟶*-letin-compatible M⟶) (βLetIn ⟶⟨ N⟶ ⟩ ≡→≤ +-pure-idˡ) ,
+    ⟶*-trans (⟶*-letin-compatible M⟶) (βletin ⟶⟨ N⟶ ⟩ ≡→≤ +-pure-idˡ) ,
     T≈N′ ,
     ≤-trans (≤-+-compatibleʳ φ₁′≤φ₁) (≤-+-compatibleˡ φ₂′≤φ₂)
   ⇓-adequate {σ = σ} ρ~σ evalTick =
@@ -103,10 +110,43 @@ mutual
     (βtick ⟶⟨ (return unit)  ∎ ⟩ ≡→≤ +-pure-idʳ) ,
     tt ,
     ≤-refl
+  ⇓-adequate {σ = σ} ρ~σ (evalSplit {V = V} {M = M} V⇓ M⇓)
+    with V ⦅ σ ⦆v in eq | ⇓-adequate-val ρ~σ V⇓
+  ...  | ⟨ V₁ , V₂ ⟩   | W₁≈V₁ , W₂≈V₂
+    with ⇓-adequate (~-ext (~-ext ρ~σ W₁≈V₁) W₂≈V₂) M⇓
+  ...  | N , φ′ , M⟶ , T≈N , φ′≤φ =
+    N ,
+    φ′ ,
+    (βsplit ⟶⟨ subst (_⟶* N # φ′) subst-lemma M⟶ ⟩ ≡→≤ +-pure-idˡ) ,
+    T≈N ,
+    φ′≤φ
+    where
+      subst-lemma : M ⦅ V₂ • V₁ • σ ⦆c ≡ (M ⦅ exts (exts σ) ⦆c) ⦅ V₂ • V₁ • id ⦆c
+      subst-lemma
+        rewrite sub-sub (exts (exts σ)) (V₂ • V₁ • id) M
+              | exts-seq-cons (exts σ) V₂ (V₁ • id)
+              | exts-seq-cons σ V₁ id
+              | sub-idR {σ = σ}                          = refl
+  ⇓-adequate {σ = σ} ρ~σ (evalCaseInl {V = V} {M₁ = M₁} V⇓ M₁⇓)
+    with V ⦅ σ ⦆v in eq | ⇓-adequate-val ρ~σ V⇓
+  ...  | inl V         | W≈V
+    with ⇓-adequate (~-ext ρ~σ W≈V) M₁⇓
+  ...  | N , φ′ , M₁⟶ , T≈N , φ′≤φ
+    rewrite sym (subst-zero-exts-cons σ V)
+          | sym (sub-sub (exts σ) (subst-zero V) M₁) =
+    N , φ′ , (βcaseInl ⟶⟨ M₁⟶ ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
+  ⇓-adequate {σ = σ} ρ~σ (evalCaseInr {V = V} {M₂ = M₂} V⇓ M₂⇓)
+    with V ⦅ σ ⦆v in eq | ⇓-adequate-val ρ~σ V⇓
+  ...  | inr V         | W≈V
+    with ⇓-adequate (~-ext ρ~σ W≈V) M₂⇓
+  ...  | N , φ′ , M₂⟶ , T≈N , φ′≤φ
+    rewrite sym (subst-zero-exts-cons σ V)
+          | sym (sub-sub (exts σ) (subst-zero V) M₂) =
+    N , φ′ , (βcaseInr ⟶⟨ M₂⟶ ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
 
 adequacy : ∅ᵨ ⊢c M ⇓ T # φ
            --------------------------------------------
          → ∃[ N ] ∃[ φ′ ] M ⟶* N # φ′ × T ≈c N × φ′ ≤ φ
-adequacy {M = M} M⇓T with ⇓-adequate {σ = id} (λ ()) M⇓T 
-...                     | lemma                           
+adequacy {M = M} M⇓T with ⇓-adequate {σ = id} (λ ()) M⇓T
+...                     | lemma
                      rewrite sub-id M                     = lemma

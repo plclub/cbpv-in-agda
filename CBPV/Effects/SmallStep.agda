@@ -12,33 +12,31 @@ open Effect E
 open Effects.Properties E
 
 data _⟶_#_ {n : ℕ} : Comp n → Comp n → Eff → Set where
-  stepForceThunk : ∀ {M : Comp n}
-                   ------------------
-                 → ⟪ M ⟫ ! ⟶ M # pure
+  -- Computation rules
+  βforceThunk : ⟪ M ⟫ ! ⟶ M # pure
 
-  β : ∀ {M : Comp (suc n)} {V : Val n}
-      ---------------------------
-    → (ƛ M) · V ⟶ M 〔 V 〕 # pure
+  β : (ƛ M) · V ⟶ M 〔 V 〕 # pure
 
-  βLetIn : ∀ {V : Val n} {M : Comp (suc n)}
-          → $⟵ return V ⋯ M ⟶ M 〔 V 〕 # pure
+  βletin : $⟵ return V ⋯ M ⟶ M 〔 V 〕 # pure
 
-  stepApp : ∀ {M M′ : Comp n} {V : Val n} {φ : Eff}
-          → M ⟶ M′ # φ
-            -------------------
-          → M · V ⟶ M′ · V # φ
+  βsplit : $≔ ⟨ V₁ , V₂ ⟩ ⋯ M ⟶ M ⦅ V₂ • V₁ • id ⦆c # pure
 
-  stepLetin : ∀ {M M′ : Comp n} {N : Comp (suc n)} {φ : Eff}
-            → M ⟶ M′ # φ
-              -------------------------
-            → $⟵ M ⋯ N ⟶ $⟵ M′ ⋯ N # φ
+  βcaseInl : case inl V inl⇒ M₁ inr⇒ M₂ ⟶ M₁ 〔 V 〕 # pure
 
-  βSeq : ∀ {M : Comp n}
-            -------------------
-          → unit » M ⟶ M # pure
+  βcaseInr : case inr V inl⇒ M₁ inr⇒ M₂ ⟶ M₂ 〔 V 〕 # pure
+
+  βSeq : unit » M ⟶ M # pure
 
   βtick : tick ⟶ return unit # tock
 
+  -- Compatibility rules
+  stepApp : M ⟶ M′ # φ
+            -------------------
+          → M · V ⟶ M′ · V # φ
+
+  stepLetin : M ⟶ M′ # φ
+              -------------------------
+            → $⟵ M ⋯ N ⟶ $⟵ M′ ⋯ N # φ
 
 infix 4 _⟶_#_
 
@@ -47,19 +45,17 @@ data _⟶*_#_ {n : ℕ} : Comp n → Comp n → Eff → Set where
          -------------
        → M ⟶* M # pure
 
-  _⟶⟨_⟩_ : ∀ {M M′ M″ : Comp n} {φ₁ φ₂ φ : Eff}
-        → M ⟶ M′ # φ₁
-        → M′ ⟶* M″ # φ₂
-        → φ₁ + φ₂ ≤ φ
-          -------------
-        → M ⟶* M″ # φ
+  _⟶⟨_⟩_ : M ⟶ M′ # φ₁
+         → M′ ⟶* M″ # φ₂
+         → φ₁ + φ₂ ≤ φ
+           -------------
+         → M ⟶* M″ # φ
 
 infix 5 _∎
 infixr 4 _⟶⟨_⟩_
 infix 4 _⟶*_#_
 
-⟶*-trans : ∀ {n : ℕ} {M M′ M″ : Comp n} {φ₁ φ₂ : Eff}
-         → M ⟶* M′ # φ₁
+⟶*-trans : M ⟶* M′ # φ₁
          → M′ ⟶* M″ # φ₂
            -----------------
          → M ⟶* M″ # φ₁ + φ₂
@@ -68,15 +64,13 @@ infix 4 _⟶*_#_
 ⟶*-trans (x ⟶⟨ y ⟩ φ₁+φ₂≤φ) z =
   x ⟶⟨ ⟶*-trans y z ⟩ ≤-trans (≡→≤ (sym (+-assoc))) (≤-+-compatibleʳ φ₁+φ₂≤φ)
 
-⟶*-app-compatible : ∀ {n : ℕ} {M M′ : Comp n} {V : Val n} {φ : Eff}
-                  → M ⟶* M′ # φ
+⟶*-app-compatible : M ⟶* M′ # φ
                     -------------------
                   → M · V ⟶* M′ · V # φ
 ⟶*-app-compatible {M = M} {V = V} (_ ∎) = M · V ∎
 ⟶*-app-compatible (x ⟶⟨ y ⟩ pf) = stepApp x ⟶⟨ ⟶*-app-compatible y ⟩ pf
 
-⟶*-letin-compatible : ∀ {n : ℕ} {M M′ : Comp n} {N : Comp (suc n)} {φ : Eff}
-                    → M ⟶* M′ # φ
+⟶*-letin-compatible : M ⟶* M′ # φ
                     → $⟵ M ⋯ N ⟶* $⟵ M′ ⋯ N # φ
 ⟶*-letin-compatible {M = M} {N = N} (_ ∎) = ($⟵ M ⋯ N) ∎
 ⟶*-letin-compatible (x ⟶⟨ y ⟩ pf) = stepLetin x ⟶⟨ ⟶*-letin-compatible y ⟩ pf

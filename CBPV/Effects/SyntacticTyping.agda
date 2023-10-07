@@ -36,6 +36,19 @@ mutual
                 ------------------
               → Γ ⊢v ⟪ M ⟫ ⦂ 𝑼 φ B
 
+    typePair : Γ ⊢v V₁ ⦂ A₁
+             → Γ ⊢v V₂ ⦂ A₂
+               --------------------------
+             → Γ ⊢v ⟨ V₁ , V₂ ⟩ ⦂ A₁ * A₂
+
+    typeInl : Γ ⊢v V ⦂ A₁
+              --------------------
+            → Γ ⊢v inl V ⦂ A₁ ∪ A₂
+
+    typeInr : Γ ⊢v V ⦂ A₂
+              --------------------
+            → Γ ⊢v inr V ⦂ A₁ ∪ A₂
+
   data _⊢c_⦂_#_ : Ctx n → Comp n → CompType → Eff → Set where
     typeAbs : Γ ∷ A ⊢c M ⦂ B # φ
               --------------------
@@ -66,6 +79,17 @@ mutual
                 ----------------------
               → Γ ⊢c $⟵ M ⋯ N ⦂ B # φ
 
+    typeSplit : Γ ⊢v V ⦂ A₁ * A₂
+              → Γ ∷ A₁ ∷ A₂ ⊢c M ⦂ B # φ
+                ------------------------
+              → Γ ⊢c $≔ V ⋯ M ⦂ B # φ
+
+    typeCase : Γ ⊢v V ⦂ A₁ ∪ A₂
+             → Γ ∷ A₁ ⊢c M₁ ⦂ B # φ
+             → Γ ∷ A₂ ⊢c M₂ ⦂ B # φ
+               -----------------------------------
+             → Γ ⊢c case V inl⇒ M₁ inr⇒ M₂ ⦂ B # φ
+
     typeTick : tock ≤ φ
                -------------------
              → Γ ⊢c tick ⦂ 𝑭 𝟙 # φ
@@ -83,4 +107,7 @@ type-subeff (typeForce pf φ₁≤φ₂) φ₂≤φ₃ = typeForce pf (≤-trans
 type-subeff (typeRet pf) φ≤ψ = typeRet pf
 type-subeff (typeLetin pf₁ pf₂ φ₁+φ₂≤φ) φ≤ψ =
   typeLetin pf₁ pf₂ (≤-trans φ₁+φ₂≤φ φ≤ψ)
+type-subeff (typeSplit ⊢V ⊢M) φ≤ψ = typeSplit ⊢V (type-subeff ⊢M φ≤ψ)
+type-subeff (typeCase ⊢V ⊢M₁ ⊢M₂) φ≤ψ =
+  typeCase ⊢V (type-subeff ⊢M₁ φ≤ψ) (type-subeff ⊢M₂ φ≤ψ)
 type-subeff (typeTick tock) φ≤ψ = typeTick (≤-trans tock φ≤ψ)
