@@ -16,10 +16,13 @@ import CBV.Base.Translation
 
 {- Section 3 -}
 import Effects
-import CBPV.Effects.SyntacticTyping
 
 {- Section 3.1 -}
+import CBPV.Effects.SyntacticTyping
+
+{- Section 3.2 -}
 import CBPV.Effects.Semantics
+import CBPV.Effects.Determinism
 import CBPV.Effects.SemanticTyping
 import CBPV.Effects.EffectSoundness
 
