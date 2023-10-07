@@ -1,9 +1,17 @@
 open import Data.Nat using (ℕ; suc)
+open import Data.Product using (_×_)
 
 open import CBPV.Base.Substitution
 open import CBPV.Base.Terms
 
 module CBPV.Base.SmallStep where
+
+data Normal : Comp n → Set where
+  normalAbs : Normal (ƛ M)
+
+  normalCpair : Normal ⟨ M₁ , M₂ ⟩
+
+  normalReturn : Normal (return V)
 
 data _⟶_ : Comp n → Comp n → Set where
   -- Computation rules
@@ -58,6 +66,9 @@ data _⟶*_ {n : ℕ} : Comp n → Comp n → Set where
 infix 5 _∎
 infixr 4 _⟶⟨_⟩
 infix 4 _⟶*_
+
+_has-normal-form_ : Comp n → Comp n → Set
+M has-normal-form N = M ⟶* N × Normal N
 
 ⟶*-trans : M ⟶* M′
          → M′ ⟶* M″
