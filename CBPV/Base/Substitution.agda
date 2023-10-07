@@ -52,9 +52,6 @@ mutual
   ($⟵ M ⋯ N) ⦅ σ ⦆c = $⟵ M ⦅ σ ⦆c ⋯ N ⦅ exts σ ⦆c
   (V !) ⦅ σ ⦆c = V ⦅ σ ⦆v !
   ($≔ V ⋯ M) ⦅ σ ⦆c = $≔ V ⦅ σ ⦆v ⋯ M ⦅ exts (exts σ) ⦆c
-  ⟨ M₁ , M₂ ⟩ ⦅ σ ⦆c = ⟨ M₁ ⦅ σ ⦆c , M₂ ⦅ σ ⦆c ⟩
-  projl M ⦅ σ ⦆c = projl (M ⦅ σ ⦆c)
-  projr M ⦅ σ ⦆c = projr (M ⦅ σ ⦆c)
   (case V inl⇒ M₁ inr⇒ M₂) ⦅ σ ⦆c = case V ⦅ σ ⦆v inl⇒ M₁ ⦅ exts σ ⦆c inr⇒ M₂ ⦅ exts σ ⦆c
 
 infix 8 _⦅_⦆v
@@ -125,12 +122,6 @@ mutual
   cong-sub {M = $≔ V ⋯ M} ss refl
     rewrite cong-sub-val {V = V} ss refl
           | cong-sub {M = M} (cong-exts (cong-exts ss)) refl = refl
-  cong-sub {M = ⟨ M₁ , M₂ ⟩} ss refl
-    rewrite cong-sub {M = M₁} ss refl | cong-sub {M = M₂} ss refl = refl
-  cong-sub {M = projl M} ss refl
-    rewrite cong-sub {M = M} ss refl = refl
-  cong-sub {M = projr M} ss refl
-    rewrite cong-sub {M = M} ss refl = refl
   cong-sub {M = case V inl⇒ M₁ inr⇒ M₂} ss refl
     rewrite cong-sub-val {V = V} ss refl
           | cong-sub {M = M₁} (cong-exts ss) refl
@@ -166,10 +157,6 @@ mutual
     rewrite sub-id-val V
           | cong-sub {M = M} (trans (cong exts exts-ids) (exts-ids)) refl
           | sub-id M                                                      = refl
-  sub-id ⟨ M₁ , M₂ ⟩
-    rewrite sub-id M₁ | sub-id M₂ = refl
-  sub-id (projl M) rewrite sub-id M = refl
-  sub-id (projr M) rewrite sub-id M = refl
   sub-id (case V inl⇒ M₁ inr⇒ M₂)
     rewrite sub-id-val V
           | cong-sub {M = M₁} exts-ids refl
@@ -209,7 +196,7 @@ mutual
     rewrite compose-rename-val ρ ω V | compose-rename ρ ω M = refl
   compose-rename ρ ω (V » M)
     rewrite compose-rename-val ρ ω V | compose-rename ρ ω M = refl
-  compose-rename ρ ω (V !) 
+  compose-rename ρ ω (V !)
     rewrite compose-rename-val ρ ω V = refl
   compose-rename ρ ω (return V)
     rewrite compose-rename-val ρ ω V = refl
@@ -222,10 +209,6 @@ mutual
           | compose-rename (ext (ext ρ)) (ext (ext ω)) M
           | compose-ext {ρ = ext ρ} {ext ω}
           | compose-ext {ρ = ρ} {ω}                      = refl
-  compose-rename ρ ω ⟨ M₁ , M₂ ⟩
-    rewrite compose-rename ρ ω M₁ | compose-rename ρ ω M₂ = refl
-  compose-rename ρ ω (projl M) rewrite compose-rename ρ ω M = refl
-  compose-rename ρ ω (projr M) rewrite compose-rename ρ ω M = refl
   compose-rename ρ ω (case V inl⇒ M₁ inr⇒ M₂)
     rewrite compose-rename-val ρ ω V
           | compose-rename (ext ρ) (ext ω) M₁
@@ -248,7 +231,7 @@ mutual
     rewrite commute-subst-rename-val σ ρ ρ′ σ′ V pf = refl
   commute-subst-rename-val σ ρ ρ′ σ′ (inr V) pf
     rewrite commute-subst-rename-val σ ρ ρ′ σ′ V pf = refl
-  
+
   commute-subst-rename : ∀ {n m p q : ℕ} (σ : Sub m n) (ρ : Ren p m)
                            (ρ′ : Ren q n) (σ′ : Sub p q) (M : Comp n)
                        → (∀ (x : Fin n) → σ′ (ρ′ x) ≡ σ x [ ρ ]v)
@@ -300,13 +283,6 @@ mutual
               | compose-rename-val (λ x → suc (ρ x)) suc (σ m)
               | compose-rename-val suc suc (σ m)
               | compose-rename-val (λ x → suc (suc x)) (ext (ext ρ)) (σ m) = refl
-  commute-subst-rename σ ρ ρ′ σ′ ⟨ M₁ , M₂ ⟩ pf
-    rewrite commute-subst-rename σ ρ ρ′ σ′ M₁ pf
-          | commute-subst-rename σ ρ ρ′ σ′ M₂ pf = refl
-  commute-subst-rename σ ρ ρ′ σ′ (projl M) pf
-    rewrite commute-subst-rename σ ρ ρ′ σ′ M pf = refl
-  commute-subst-rename σ ρ ρ′ σ′ (projr M) pf
-    rewrite commute-subst-rename σ ρ ρ′ σ′ M pf = refl
   commute-subst-rename σ ρ ρ′ σ′ (case V inl⇒ M₁ inr⇒ M₂) pf
     rewrite commute-subst-rename-val σ ρ ρ′ σ′ V pf =
     cong₂
@@ -361,10 +337,6 @@ mutual
           | sub-sub (exts (exts σ)) (exts (exts τ)) M
           | cong-sub {M = M} (exts-seq (exts σ) (exts τ)) refl
           | cong-sub {M = M} (cong exts (exts-seq σ τ)) refl   = refl
-  sub-sub σ τ ⟨ M₁ , M₂ ⟩
-    rewrite sub-sub σ τ M₁ | sub-sub σ τ M₂ = refl
-  sub-sub σ τ (projl M) rewrite sub-sub σ τ M = refl
-  sub-sub σ τ (projr M) rewrite sub-sub σ τ M = refl
   sub-sub σ τ (case V inl⇒ M₁ inr⇒ M₂)
     rewrite sub-sub-val σ τ V
           | sub-sub (exts σ) (exts τ) M₁
@@ -402,7 +374,7 @@ mutual
     rewrite rename-subst-ren-val ρ V = refl
   rename-subst-ren-val ρ (inr V)
     rewrite rename-subst-ren-val ρ V = refl
-  
+
   rename-subst-ren : ∀ {n m : ℕ} (ρ : Ren n m) (M : Comp m)
                    → M [ ρ ]c ≡ M ⦅ ren ρ ⦆c
   rename-subst-ren ρ (ƛ M)
@@ -424,12 +396,6 @@ mutual
     rewrite rename-subst-ren-val ρ V
           | rename-subst-ren (ext (ext ρ)) M
           | cong-sub {M = M} (trans (ren-ext (ext ρ)) (cong exts (ren-ext ρ))) refl = refl
-  rename-subst-ren ρ ⟨ M₁ , M₂ ⟩
-    rewrite rename-subst-ren ρ M₁ | rename-subst-ren ρ M₂ = refl
-  rename-subst-ren ρ (projl M)
-    rewrite rename-subst-ren ρ M = refl
-  rename-subst-ren ρ (projr M)
-    rewrite rename-subst-ren ρ M = refl
   rename-subst-ren ρ (case V inl⇒ M₁ inr⇒ M₂)
     rewrite rename-subst-ren-val ρ V
           | rename-subst-ren (ext ρ) M₁
@@ -475,7 +441,7 @@ cong-seq {σ = σ} {τ} {σ′} {τ′} ss tt = extensionality lemma where
 
 sub-tail : ∀ {n m : ℕ} (σ : Sub n m) (V : Val n)
          → ↑ ⨟ (V • σ) ≡ σ
-sub-tail σ V = refl         
+sub-tail σ V = refl
 
 subst-zero-exts-cons : ∀ {n m : ℕ} (σ : Sub n m) (V : Val n)
                      → exts σ ⨟ subst-zero V ≡ V • σ
@@ -510,7 +476,7 @@ exts-seq-cons σ V τ =
   ∎
 
 mutual
-  val-typepres-substitution : ∀ {σ : Sub n n′} 
+  val-typepres-substitution : ∀ {σ : Sub n n′}
                             → Δ ⊢v V ⦂ A
                             → (∀ (m : Fin n′) → Γ ⊢v σ m ⦂ Δ m)
                               ---------------------------------
@@ -570,14 +536,6 @@ mutual
                     (suc (suc m)) → val-typepres-renaming
                                       (val-typepres-renaming (pf m) (λ _ → refl))
                                       λ _ → refl
-  comp-typepres-substitution (typeCpair ⊢M₁ ⊢M₂) pf =
-    typeCpair
-      (comp-typepres-substitution ⊢M₁ pf)
-      (comp-typepres-substitution ⊢M₂ pf)
-  comp-typepres-substitution (typeProjl ⊢M) pf =
-    typeProjl (comp-typepres-substitution ⊢M pf)
-  comp-typepres-substitution (typeProjr ⊢M) pf =
-    typeProjr (comp-typepres-substitution ⊢M pf)
   comp-typepres-substitution (typeCase ⊢V ⊢M₁ ⊢M₂) pf =
     typeCase
       (val-typepres-substitution ⊢V pf)

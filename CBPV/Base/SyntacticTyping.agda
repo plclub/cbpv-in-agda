@@ -79,19 +79,6 @@ mutual
                 --------------------
               → Γ ⊢c $≔ V ⋯ M ⦂ B
 
-    typeCpair : Γ ⊢c M₁ ⦂ B₁
-              → Γ ⊢c M₂ ⦂ B₂
-                --------------------------
-              → Γ ⊢c ⟨ M₁ , M₂ ⟩ ⦂ B₁ & B₂
-
-    typeProjl : Γ ⊢c M ⦂ B₁ & B₂
-                -----------------
-              → Γ ⊢c projl M ⦂ B₁
-
-    typeProjr : Γ ⊢c M ⦂ B₁ & B₂
-                -----------------
-              → Γ ⊢c projr M ⦂ B₂
-
     typeCase : Γ ⊢v V ⦂ A₁ ∪ A₂
              → Γ ∷ A₁ ⊢c M₁ ⦂ B
              → Γ ∷ A₂ ⊢c M₂ ⦂ B

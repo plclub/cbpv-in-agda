@@ -25,8 +25,6 @@ mutual
   𝒯⟦ 𝑭 A ⟧ (return V) = V ∈ 𝒲⟦ A ⟧
   𝒯⟦ A ⇒ B ⟧ clos⦅ ρ ,ƛ M ⦆ =
     ∀ {W : ClosVal} → W ∈ 𝒲⟦ A ⟧ → (ρ ∷ᵨ W , M) ∈ ℳ⟦ B ⟧
-  𝒯⟦ B₁ & B₂ ⟧ clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ =
-    (ρ , M₁) ∈ ℳ⟦ B₁ ⟧ × (ρ , M₂) ∈ ℳ⟦ B₂ ⟧
   𝒯⟦ _ ⟧ _ = ⊥
 
   ℳ⟦_⟧ : CompType → Env n × Comp n → Set
@@ -158,29 +156,6 @@ semanticSplit ⊨V ⊨M ⊨ρ
   with ⊨M (⊨-ext (⊨-ext ⊨ρ W₁∈𝒲) W₂∈𝒲)
 ...  | T , M⇓ , T∈𝒯 =
   T , evalSplit V⇓ M⇓ , T∈𝒯
-
-semanticCpair : Γ ⊨c M₁ ⦂ B₁
-              → Γ ⊨c M₂ ⦂ B₂
-                --------------------------
-              → Γ ⊨c ⟨ M₁ , M₂ ⟩ ⦂ B₁ & B₂
-semanticCpair {M₁ = M₁} {M₂ = M₂} ⊨M₁ ⊨M₂ {ρ} ⊨ρ =
-  clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ , evalCpair , ⊨M₁ ⊨ρ , ⊨M₂ ⊨ρ
-
-semanticProjl : Γ ⊨c M ⦂ B₁ & B₂
-                -----------------
-              → Γ ⊨c projl M ⦂ B₁
-semanticProjl ⊨M ⊨ρ
-  with ⊨M ⊨ρ
-... | clos⦅ ρ′ ,⟨ M₁ , _ ⟩⦆ , M⇓ , (T , M₁⇓ , T∈𝒯) , _ =
-  T , evalProjl M⇓ M₁⇓ , T∈𝒯
-
-semanticProjr : Γ ⊨c M ⦂ B₁ & B₂
-                -----------------
-              → Γ ⊨c projr M ⦂ B₂
-semanticProjr ⊨M ⊨ρ
-  with ⊨M ⊨ρ
-... | clos⦅ ρ′ ,⟨ _ , M₂ ⟩⦆ , M⇓ , _ , (T , M₂⇓ , T∈𝒯) =
-  T , evalProjr M⇓ M₂⇓ , T∈𝒯
 
 semanticCase : Γ ⊨v V ⦂ A₁ ∪ A₂
              → Γ ∷ A₁ ⊨c M₁ ⦂ B

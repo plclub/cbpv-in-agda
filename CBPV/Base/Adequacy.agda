@@ -4,7 +4,7 @@ open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.Product using (∃-syntax; _×_; _,_)
 open import Data.Unit using (⊤; tt)
-open Eq using (_≡_; refl; sym; subst; trans)
+open Eq using (_≡_; refl; sym; subst)
 
 open import CBPV.Base.Semantics
 open import CBPV.Base.SmallStep
@@ -28,8 +28,6 @@ mutual
   _≈c_ : ClosTerminal → Comp zero → Set
   (return V₁) ≈c (return V₂) = V₁ ≈v V₂
   clos⦅ ρ ,ƛ M ⦆ ≈c N = ∃[ σ ] ρ ~ σ × N ≡ (ƛ M) ⦅ σ ⦆c
-  clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ ≈c N =
-    ∃[ σ ] ρ ~ σ × N ≡ ⟨ M₁ , M₂ ⟩ ⦅ σ ⦆c
   _ ≈c _ = ⊥
 
 infix 4 _~_
@@ -97,7 +95,7 @@ mutual
           | sym (sub-sub (exts σ) (subst-zero V) N) =
     N′ , ⟶*-trans (⟶*-letin-compatible M⟶) (βletin ⟶⟨ N⟶ ⟩)  , T≈N′
   ⇓-adequate {σ = σ} ρ~σ (evalSplit {V = V} {M = M} V⇓ M⇓)
-    with V ⦅ σ ⦆v in eq | ⇓-adequate-val ρ~σ V⇓ 
+    with V ⦅ σ ⦆v in eq | ⇓-adequate-val ρ~σ V⇓
   ...  | ⟨ V₁ , V₂ ⟩   | W₁≈V₁ , W₂≈V₂
     with ⇓-adequate (~-ext (~-ext ρ~σ W₁≈V₁) W₂≈V₂) M⇓
   ...  | N , M⟶ , T≈N =
@@ -127,26 +125,6 @@ mutual
     rewrite sym (subst-zero-exts-cons σ V)
           | sym (sub-sub (exts σ) (subst-zero V) M₂) =
     N , (βcaseInr ⟶⟨ M₂⟶ ⟩) , T≈N
-  ⇓-adequate {σ = σ} ρ~σ (evalCpair {M₁ = M₁} {M₂ = M₂}) =
-    ⟨ M₁ ⦅ σ ⦆c , M₂ ⦅ σ ⦆c ⟩ ,
-    ⟨ M₁ ⦅ σ ⦆c , M₂ ⦅ σ ⦆c ⟩ ∎ ,
-    σ ,
-    ρ~σ ,
-    refl
-  ⇓-adequate ρ~σ (evalProjl M⇓ M₁⇓)
-    with ⇓-adequate ρ~σ M⇓
-  ...  | _ , M⟶ , (σ′ , ρ′~σ′ , eq)
-    with ⇓-adequate ρ′~σ′ M₁⇓
-  ...  | N , M₁⟶ , T≈N
-    rewrite eq =
-    N , ⟶*-trans (⟶*-projl-compatible M⟶) (βprojl ⟶⟨ M₁⟶ ⟩) , T≈N
-  ⇓-adequate ρ~σ (evalProjr M⇓ M₂⇓)
-    with ⇓-adequate ρ~σ M⇓
-  ...  | _ , M⟶ , (σ′ , ρ′~σ′ , eq)
-    with ⇓-adequate ρ′~σ′ M₂⇓
-  ...  | N , M₂⟶ , T≈N
-    rewrite eq =
-    N , ⟶*-trans (⟶*-projr-compatible M⟶) (βprojr ⟶⟨ M₂⟶ ⟩) , T≈N
 
 adequacy : ∅ᵨ ⊢c M ⇓ T
            ----------------------

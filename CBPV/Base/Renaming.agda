@@ -41,13 +41,19 @@ mutual
   ($⟵ M ⋯ N) [ ρ ]c = $⟵ M [ ρ ]c ⋯ N [ ext ρ ]c
   (V !) [ ρ ]c = V [ ρ ]v !
   ($≔ V ⋯ M) [ ρ ]c = $≔ V [ ρ ]v ⋯ M [ ext (ext ρ) ]c
-  ⟨ M₁ , M₂ ⟩ [ ρ ]c = ⟨ M₁ [ ρ ]c , M₂ [ ρ ]c ⟩
-  projl M [ ρ ]c = projl (M [ ρ ]c)
-  projr M [ ρ ]c = projr (M [ ρ ]c)
   (case V inl⇒ M₁ inr⇒ M₂) [ ρ ]c = case V [ ρ ]v inl⇒ M₁ [ ext ρ ]c inr⇒ M₂ [ ext ρ ]c
 
 infix 8 _[_]v
 infix 8 _[_]c
+
+↑↑ : Ren (suc n) n
+↑↑ zero = zero
+↑↑ = suc
+
+↑↑↑ : Ren (suc n) n
+↑↑↑ zero = zero
+↑↑↑ (suc zero) = suc zero
+↑↑↑ = suc
 
 mutual
   val-typepres-renaming : ∀ {ρ : Ren n n′}
@@ -67,7 +73,7 @@ mutual
   val-typepres-renaming (typeInr ⊢V) pf =
     typeInr (val-typepres-renaming ⊢V pf)
 
-  comp-typepres-renaming : ∀ {ρ : Ren n n′} 
+  comp-typepres-renaming : ∀ {ρ : Ren n n′}
                          → Δ ⊢c M ⦂ B
                          → (∀ (m : Fin n′) → Δ m ≡ Γ (ρ m))
                            --------------------------------
@@ -106,14 +112,6 @@ mutual
                    zero          → refl
                    (suc zero)    → refl
                    (suc (suc m)) → pf m
-  comp-typepres-renaming (typeCpair ⊢M₁ ⊢M₂) pf =
-    typeCpair
-      (comp-typepres-renaming ⊢M₁ pf)
-      (comp-typepres-renaming ⊢M₂ pf)
-  comp-typepres-renaming (typeProjl ⊢M) pf =
-    typeProjl (comp-typepres-renaming ⊢M pf)
-  comp-typepres-renaming (typeProjr ⊢M) pf =
-    typeProjr (comp-typepres-renaming ⊢M pf)
   comp-typepres-renaming (typeCase ⊢V ⊢M₁ ⊢M₂) pf =
     typeCase
       (val-typepres-renaming ⊢V pf)

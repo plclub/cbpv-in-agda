@@ -23,9 +23,6 @@ mutual
     return_ : Val n → Comp n
     $⟵_⋯_ : Comp n → Comp (suc n) → Comp n
     $≔_⋯_ : Val n → Comp (suc (suc n)) → Comp n
-    ⟨_,_⟩ : Comp n → Comp n → Comp n
-    projl : Comp n → Comp n
-    projr : Comp n → Comp n
     case_inl⇒_inr⇒_ : Val n → Comp (suc n) → Comp (suc n) → Comp n
 
 variable V V′ V₁ V₂ : Val n

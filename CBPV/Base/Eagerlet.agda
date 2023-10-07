@@ -8,7 +8,7 @@ open import CBPV.Base.Types
 
 module CBPV.Base.Eagerlet where
 
-$⇐_⋯_ : ∀ {n : ℕ} → Comp n → Comp (suc n) → Comp n
+$⇐_⋯_ : Comp n → Comp (suc n) → Comp n
 $⇐ return V ⋯ N = N 〔 V 〕
 $⇐ M ⋯ N = $⟵ M ⋯ N
 
@@ -27,6 +27,4 @@ typeEagerlet {M = _ » _} = typeLetin
 typeEagerlet {M = _ !} = typeLetin
 typeEagerlet {M = $⟵ _ ⋯ _} = typeLetin
 typeEagerlet {M = $≔ _ ⋯ _} = typeLetin
-typeEagerlet {M = projl _} = typeLetin
-typeEagerlet {M = projr _} = typeLetin
 typeEagerlet {M = case _ inl⇒ _ inr⇒ _} = typeLetin
