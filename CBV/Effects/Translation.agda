@@ -34,6 +34,8 @@ instance
   ⟦Type⟧ : Translation Type ValType
   Translation.⟦ ⟦Type⟧ ⟧ 𝟙 = 𝟙
   Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ─ φ ⟶ τ₂) = 𝑼 φ (⟦ τ₁ ⟧ ⇒ 𝑭 ⟦ τ₂ ⟧)
+  Translation.⟦ ⟦Type⟧ ⟧ (τ₁ * τ₂) = ⟦ τ₁ ⟧ * ⟦ τ₂ ⟧
+  Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ∪ τ₂) = ⟦ τ₁ ⟧ ∪ ⟦ τ₂ ⟧
 
   ⟦Ctx⟧ : Translation (Ctx n) (CBPV.Ctx n)
   Translation.⟦ ⟦Ctx⟧ ⟧ Γ m = ⟦ Γ m ⟧
@@ -43,6 +45,9 @@ instance
     Translation.⟦ ⟦Value⟧ ⟧ unit = unit
     Translation.⟦ ⟦Value⟧ ⟧ (ƛ e) = ⟪ ƛ ⟦ e ⟧ ⟫
     Translation.⟦ ⟦Value⟧ ⟧ (♯ x) = ♯ x
+    Translation.⟦ ⟦Value⟧ ⟧ (inl v) = inl ⟦ v ⟧
+    Translation.⟦ ⟦Value⟧ ⟧ (inr v) = inr ⟦ v ⟧
+    Translation.⟦ ⟦Value⟧ ⟧ ⟨ v₁ , v₂ ⟩ = ⟨ ⟦ v₁ ⟧ , ⟦ v₂ ⟧ ⟩
 
     ⟦Exp⟧ : Translation (Exp n) (Comp n)
     Translation.⟦ ⟦Exp⟧ ⟧ (val v) = return ⟦ v ⟧
@@ -53,6 +58,23 @@ instance
     Translation.⟦ ⟦Exp⟧ ⟧ (e₁ » e₂) =
       $⇐ ⟦ e₁ ⟧ ⋯
       ♯ zero » ⟦ e₂ ⟧ [ suc ]c
+    Translation.⟦ ⟦Exp⟧ ⟧ (inl e) =
+     $⇐ ⟦ e ⟧ ⋯ return (inl (♯ zero))
+    Translation.⟦ ⟦Exp⟧ ⟧ (inr e) =
+     $⇐ ⟦ e ⟧ ⋯ return (inr (♯ zero))
+    Translation.⟦ ⟦Exp⟧ ⟧ ⟨ e₁ , e₂ ⟩ =
+      $⇐ ⟦ e₁ ⟧ ⋯
+      $⇐ ⟦ e₂ ⟧ [ suc ]c ⋯
+      return ⟨ ♯ suc zero , ♯ zero ⟩
+    Translation.⟦ ⟦Exp⟧ ⟧ (case e inl⇒ e₁ inr⇒ e₂) =
+      $⇐ ⟦ e ⟧ ⋯
+      case ♯ zero
+        inl⇒ ⟦ e₁ ⟧ [ ↑↑ ]c
+        inr⇒ ⟦ e₂ ⟧ [ ↑↑ ]c
+    Translation.⟦ ⟦Exp⟧ ⟧ ($≔ e₁ ⋯ e₂) =
+      $⇐ ⟦ e₁ ⟧ ⋯
+      $≔ ♯ zero ⋯
+      ⟦ e₂ ⟧ [ ↑↑↑ ]c
     Translation.⟦ ⟦Exp⟧ ⟧ tick = tick
 
 ⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ ⟦ τ ⟧
@@ -70,6 +92,14 @@ mutual
     with translation-preservation-exp ⊢e′
   ...  | ⊢⟦e⟧
     rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ} = typeThunk (typeAbs ⊢⟦e⟧)
+  translation-preservation-value (typePair ⊩v₁ ⊩v₂) =
+    typePair
+      (translation-preservation-value ⊩v₁)
+      (translation-preservation-value ⊩v₂)
+  translation-preservation-value (typeInl ⊩v) =
+    typeInl (translation-preservation-value ⊩v)
+  translation-preservation-value (typeInr ⊩v) =
+    typeInr (translation-preservation-value ⊩v)
 
   translation-preservation-exp : ∀ {n : ℕ} {Γ : Ctx n} {e : Exp n}
                                      {τ : Type} {φ : Eff}
@@ -96,6 +126,47 @@ mutual
         (comp-typepres-renaming
           (translation-preservation-exp ⊢e₂)
           λ m → refl))
+      φ₁+φ₂≤φ
+  translation-preservation-exp (typePair ⊢e₁ ⊢e₂ φ₁+φ₂≤φ) =
+    typeEagerlet
+      (translation-preservation-exp ⊢e₁)
+      (typeEagerlet
+        (comp-typepres-renaming
+          (translation-preservation-exp ⊢e₂)
+          (λ _ → refl))
+        (typeRet (typePair typeVar typeVar))
+        (≡→≤ +-pure-idʳ))
+      φ₁+φ₂≤φ
+  translation-preservation-exp (typeInl ⊢e) =
+    typeEagerlet
+      (translation-preservation-exp ⊢e)
+      (typeRet (typeInl typeVar))
+      (≡→≤ +-pure-idʳ)
+  translation-preservation-exp (typeInr ⊢e) =
+    typeEagerlet
+      (translation-preservation-exp ⊢e)
+      (typeRet (typeInr typeVar))
+      (≡→≤ +-pure-idʳ)
+  translation-preservation-exp (typeCase ⊢e ⊢e₁ ⊢e₂ φ₁+φ₂≤φ) =
+    typeEagerlet
+      (translation-preservation-exp ⊢e)
+      (typeCase
+        typeVar
+        (comp-typepres-renaming
+          (translation-preservation-exp ⊢e₁)
+          λ where zero → refl ; (suc _) → refl)
+        (comp-typepres-renaming
+          (translation-preservation-exp ⊢e₂)
+          λ where zero → refl ; (suc _) → refl))
+       φ₁+φ₂≤φ
+  translation-preservation-exp (typeSplit ⊢e₁ ⊢e₂ φ₁+φ₂≤φ) =
+    typeEagerlet
+      (translation-preservation-exp ⊢e₁)
+      (typeSplit
+        typeVar
+        (comp-typepres-renaming
+          (translation-preservation-exp ⊢e₂)
+          λ where zero → refl ; (suc zero) → refl ; (suc (suc _)) → refl))
       φ₁+φ₂≤φ
   translation-preservation-exp (typeTick tock≤φ) =
     typeTick tock≤φ
