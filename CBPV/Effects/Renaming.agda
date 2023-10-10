@@ -45,6 +45,9 @@ mutual
   (V !) [ ρ ]c = V [ ρ ]v !
   ($≔ V ⋯ M) [ ρ ]c = $≔ V [ ρ ]v ⋯ M [ ext (ext ρ) ]c
   (case V inl⇒ M₁ inr⇒ M₂) [ ρ ]c = case V [ ρ ]v inl⇒ M₁ [ ext ρ ]c inr⇒ M₂ [ ext ρ ]c
+  ⟨ M₁ , M₂ ⟩ [ ρ ]c = ⟨ M₁ [ ρ ]c , M₂ [ ρ ]c ⟩
+  projl M [ ρ ]c = projl (M [ ρ ]c)
+  projr M [ ρ ]c = projr (M [ ρ ]c)
   tick [ ρ ]c = tick
 
 infix 8 _[_]v
@@ -129,4 +132,12 @@ mutual
       ext-pf₂ = λ where
                     zero    → refl
                     (suc m) → pf m
+  comp-typepres-renaming (typeCpair ⊢M₁ ⊢M₂) pf =
+    typeCpair
+      (comp-typepres-renaming ⊢M₁ pf)
+      (comp-typepres-renaming ⊢M₂ pf)
+  comp-typepres-renaming (typeProjl ⊢M) pf =
+    typeProjl (comp-typepres-renaming ⊢M pf)
+  comp-typepres-renaming (typeProjr ⊢M) pf =
+    typeProjr (comp-typepres-renaming ⊢M pf)
   comp-typepres-renaming (typeTick tock≤φ) _ = typeTick tock≤φ

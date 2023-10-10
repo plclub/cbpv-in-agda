@@ -128,18 +128,20 @@ semanticCpair {M₁ = M₁} {M₂ = M₂} ⊨M₁ ⊨M₂ {ρ} ⊨ρ =
   clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ , evalCpair , ⊨M₁ ⊨ρ , ⊨M₂ ⊨ρ
 
 semanticProjl : Γ ⊨c M ⦂ B₁ & B₂
+                -----------------
               → Γ ⊨c projl M ⦂ B₁
 semanticProjl ⊨M ⊨ρ
   with ⊨M ⊨ρ
-...  | clos⦅ _ ,⟨ M₁ , _ ⟩⦆ , M⇓ , (T₁ , M₁⇓ , M₁∈ℳ) , _ =
-  T₁ , evalProjl M⇓ M₁⇓ , M₁∈ℳ
+...  | clos⦅ _ ,⟨ M₁ , _ ⟩⦆ , M⇓ , (T₁ , M₁⇓ , T∈𝒯) , _ =
+  T₁ , evalProjl M⇓ M₁⇓ , T∈𝒯
 
 semanticProjr : Γ ⊨c M ⦂ B₁ & B₂
+                -----------------
               → Γ ⊨c projr M ⦂ B₂
 semanticProjr ⊨M ⊨ρ
   with ⊨M ⊨ρ
-...  | clos⦅ _ ,⟨ _ , M₂ ⟩⦆ , M⇓ , _ , (T₂ , M₂⇓ , M₂∈ℳ) =
-  T₂ , evalProjr M⇓ M₂⇓ , M₂∈ℳ
+...  | clos⦅ _ ,⟨ _ , M₂ ⟩⦆ , M⇓ , _ , (T₂ , M₂⇓ , T∈𝒯) =
+  T₂ , evalProjr M⇓ M₂⇓ , T∈𝒯
 
 semanticForce : Γ ⊨v V ⦂ 𝑼 B
                 ------------

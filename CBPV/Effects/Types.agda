@@ -14,10 +14,12 @@ mutual
   data CompType : Set where
     _⇒_ : ValType → CompType → CompType
     𝑭 : ValType → CompType
+    _&_ : CompType → CompType → CompType
 
 variable A A₁ A₂ : ValType
-variable B : CompType
+variable B B₁ B₂ : CompType
 
 infixr 7 _⇒_
 infixl 8 _*_
 infixl 8 _∪_
+infixl 8 _&_

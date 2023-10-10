@@ -63,6 +63,14 @@ mutual
       (fundamental-lemma-comp ⊢M₂)
   fundamental-lemma-comp {Γ = Γ} (typeTick tock≤φ) =
     semanticTick {Γ = Γ} tock≤φ
+  fundamental-lemma-comp {Γ = Γ} (typeCpair ⊢M₁ ⊢M₂) =
+    semanticCpair {Γ = Γ}
+      (fundamental-lemma-comp ⊢M₁)
+      (fundamental-lemma-comp ⊢M₂)
+  fundamental-lemma-comp {Γ = Γ} (typeProjl ⊢M) =
+    semanticProjl {Γ = Γ} (fundamental-lemma-comp ⊢M)
+  fundamental-lemma-comp {Γ = Γ} (typeProjr ⊢M) =
+    semanticProjr {Γ = Γ} (fundamental-lemma-comp ⊢M)
 
 effect-soundness : ∅ ⊢c M ⦂ B # φ
                  → ∃[ T ] ∃[ φ′ ] φ′ ≤ φ × ∅ᵨ ⊢c M ⇓ T # φ′

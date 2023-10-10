@@ -25,6 +25,8 @@ mutual
 
     clos⦅_,ƛ_⦆ : ∀ {n : ℕ} → Env n → Comp (suc n) → ClosTerminal
 
+    clos⦅_,⟨_,_⟩⦆ : Env n → Comp n → Comp n → ClosTerminal
+
   Env : ℕ → Set
   Env n = Fin n → ClosVal
 
@@ -79,6 +81,18 @@ data _⊢c_⇓_#_ : Env n → Comp n → ClosTerminal → Eff → Set where
           → ρ′ ∷ᵨ W ⊢c M′ ⇓ T # φ₂
             -----------------------------
           → ρ ⊢c M · V ⇓ T # φ₁ + φ₂
+
+  evalCpair : ρ ⊢c ⟨ M₁ , M₂ ⟩ ⇓ clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ # pure
+
+  evalProjl : ρ ⊢c M ⇓ clos⦅ ρ′ ,⟨ M₁ , M₂ ⟩⦆ # φ₁
+            → ρ′ ⊢c M₁ ⇓ T # φ₂
+              ------------------------------------
+            → ρ ⊢c projl M ⇓ T # φ₁ + φ₂
+
+  evalProjr : ρ ⊢c M ⇓ clos⦅ ρ′ ,⟨ M₁ , M₂ ⟩⦆ # φ₁
+            → ρ′ ⊢c M₂ ⇓ T # φ₂
+              ------------------------------------
+            → ρ ⊢c projr M ⇓ T # φ₁ + φ₂
 
   evalForce : ρ ⊢v V ⇓ clos⦅ ρ′ ,⟪ M ⟫⦆
             → ρ′ ⊢c M ⇓ T # φ

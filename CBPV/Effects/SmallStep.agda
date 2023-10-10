@@ -29,7 +29,19 @@ data _⟶_#_ {n : ℕ} : Comp n → Comp n → Eff → Set where
 
   βtick : tick ⟶ return unit # tock
 
+  βprojl : projl ⟨ M₁ , M₂ ⟩ ⟶ M₁ # pure
+
+  βprojr : projr ⟨ M₁ , M₂ ⟩ ⟶ M₂ # pure
+
   -- Compatibility rules
+  stepProjl : M ⟶ M′ # φ
+              ----------------------
+            → projl M ⟶ projl M′ # φ
+
+  stepProjr : M ⟶ M′ # φ
+              ----------------------
+            → projr M ⟶ projr M′ # φ
+
   stepApp : M ⟶ M′ # φ
             -------------------
           → M · V ⟶ M′ · V # φ
@@ -74,3 +86,15 @@ infix 4 _⟶*_#_
                     → $⟵ M ⋯ N ⟶* $⟵ M′ ⋯ N # φ
 ⟶*-letin-compatible {M = M} {N = N} (_ ∎) = ($⟵ M ⋯ N) ∎
 ⟶*-letin-compatible (x ⟶⟨ y ⟩ pf) = stepLetin x ⟶⟨ ⟶*-letin-compatible y ⟩ pf
+
+⟶*-projl-compatible : M ⟶* M′ # φ
+                      ------------------------
+                    → projl M ⟶* projl M′ # φ
+⟶*-projl-compatible (M ∎) = projl M ∎
+⟶*-projl-compatible (x ⟶⟨ y ⟩ pf) = stepProjl x ⟶⟨ ⟶*-projl-compatible y ⟩ pf
+
+⟶*-projr-compatible : M ⟶* M′ # φ
+                      -----------------------
+                    → projr M ⟶* projr M′ # φ
+⟶*-projr-compatible (M ∎) = projr M ∎
+⟶*-projr-compatible (x ⟶⟨ y ⟩ pf) = stepProjr x ⟶⟨ ⟶*-projr-compatible y ⟩ pf

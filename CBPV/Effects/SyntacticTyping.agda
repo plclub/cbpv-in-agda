@@ -64,6 +64,19 @@ mutual
                    ------------------
                  → Γ ⊢c V » M ⦂ B # φ
 
+    typeCpair : Γ ⊢c M₁ ⦂ B₁ # φ
+              → Γ ⊢c M₂ ⦂ B₂ # φ
+                ------------------------------
+              → Γ ⊢c ⟨ M₁ , M₂ ⟩ ⦂ B₁ & B₂ # φ
+
+    typeProjl : Γ ⊢c M ⦂ B₁ & B₂ # φ
+                ---------------------
+              → Γ ⊢c projl M ⦂ B₁ # φ
+
+    typeProjr : Γ ⊢c M ⦂ B₁ & B₂ # φ
+                ---------------------
+              → Γ ⊢c projr M ⦂ B₂ # φ
+
     typeForce : Γ ⊢v V ⦂ 𝑼 φ₁ B
               → φ₁ ≤ φ₂
                 -----------------
@@ -99,6 +112,7 @@ infix 4 _⊢c_⦂_#_
 
 type-subeff : Γ ⊢c M ⦂ B # φ
             → φ ≤ ψ
+              --------------
             → Γ ⊢c M ⦂ B # ψ
 type-subeff (typeAbs pf) φ≤ψ = typeAbs (type-subeff pf φ≤ψ)
 type-subeff (typeApp pf₁ pf₂) φ≤ψ = typeApp (type-subeff pf₁ φ≤ψ) pf₂
@@ -111,3 +125,7 @@ type-subeff (typeSplit ⊢V ⊢M) φ≤ψ = typeSplit ⊢V (type-subeff ⊢M φ�
 type-subeff (typeCase ⊢V ⊢M₁ ⊢M₂) φ≤ψ =
   typeCase ⊢V (type-subeff ⊢M₁ φ≤ψ) (type-subeff ⊢M₂ φ≤ψ)
 type-subeff (typeTick tock) φ≤ψ = typeTick (≤-trans tock φ≤ψ)
+type-subeff (typeCpair ⊢M₁ ⊢M₂) φ≤ψ =
+  typeCpair (type-subeff ⊢M₁ φ≤ψ) (type-subeff ⊢M₂ φ≤ψ)
+type-subeff (typeProjl ⊢M) φ≤ψ = typeProjl (type-subeff ⊢M φ≤ψ)
+type-subeff (typeProjr ⊢M) φ≤ψ = typeProjr (type-subeff ⊢M φ≤ψ)

@@ -73,4 +73,15 @@ mutual
   ...  | refl
     with determinism-comp M⇓ M⇓′
   ...  | refl , refl = refl , refl
+  determinism-comp evalCpair evalCpair = refl , refl
+  determinism-comp (evalProjl M⇓ M₁⇓) (evalProjl M⇓′ M₁⇓′)
+    with determinism-comp M⇓ M⇓′
+  ...  | refl , refl
+   with determinism-comp M₁⇓ M₁⇓′
+  ... | refl , refl = refl , refl
+  determinism-comp (evalProjr M⇓ M₂⇓) (evalProjr M⇓′ M₂⇓′)
+    with determinism-comp M⇓ M⇓′
+  ...  | refl , refl
+    with determinism-comp M₂⇓ M₂⇓′
+  ...  | refl , refl = refl , refl
   determinism-comp evalTick evalTick = refl , refl

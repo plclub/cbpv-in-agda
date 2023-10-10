@@ -34,7 +34,7 @@ data _↦_ : Term n → Comp n → Set where
 
   transPair : e₁ ↦ M₁
             → e₂ ↦ M₂
-              ----------------------------------------
+              -------------------------
             → ⟨ e₁ , e₂ ⟩ ↦ ⟨ M₁ , M₂ ⟩
 
   transAbs : e ↦ M
@@ -52,11 +52,11 @@ data _↦_ : Term n → Comp n → Set where
            → e₁ » e₂ ↦  $⟵ M ⋯ (# zero) » N [ suc ]c
 
   transFst : e ↦ M
-             -------------------------------------------
+             ---------------
            → fst e ↦ projl M
 
   transSnd : e ↦ M
-             -------------------------------------
+             ---------------
            → snd e ↦ projr M
 
   transCase : e ↦ M

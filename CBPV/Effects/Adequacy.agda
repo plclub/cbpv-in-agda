@@ -33,6 +33,7 @@ mutual
   _≈c_ : ClosTerminal → Comp zero → Set
   (return V₁) ≈c (return V₂) = V₁ ≈v V₂
   clos⦅ ρ ,ƛ M ⦆ ≈c N = ∃[ σ ] ρ ~ σ × N ≡ (ƛ M) ⦅ σ ⦆c
+  clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ ≈c N = ∃[ σ ] ρ ~ σ × N ≡ ⟨ M₁ , M₂ ⟩ ⦅ σ ⦆c
   _ ≈c _ = ⊥
 
 infix 4 _~_
@@ -143,6 +144,30 @@ mutual
     rewrite sym (subst-zero-exts-cons σ V)
           | sym (sub-sub (exts σ) (subst-zero V) M₂) =
     N , φ′ , (βcaseInr ⟶⟨ M₂⟶ ⟩ ≡→≤ +-pure-idˡ) , T≈N , φ′≤φ
+  ⇓-adequate {σ = σ} {M = M} ρ~σ evalCpair =
+    M ⦅ σ ⦆c , pure , M ⦅ σ ⦆c ∎ , (σ , ρ~σ , refl) , ≤-refl
+  ⇓-adequate ρ~σ (evalProjl M⇓ M₁⇓)
+    with ⇓-adequate ρ~σ M⇓
+  ...  | N′ , φ₁′ , M⟶ , (σ′ , ρ′~σ′ , eq) , φ₁′≤φ₁
+    with ⇓-adequate ρ′~σ′ M₁⇓
+  ...  | N , φ₂′ , M₁⟶ , T≈N , φ₂′≤φ₂
+    rewrite eq =
+    N ,
+    φ₁′ + φ₂′ ,
+    ⟶*-trans (⟶*-projl-compatible M⟶) (βprojl ⟶⟨ M₁⟶ ⟩ ≡→≤ +-pure-idˡ) ,
+    T≈N ,
+    ≤-trans (≤-+-compatibleˡ φ₂′≤φ₂) (≤-+-compatibleʳ φ₁′≤φ₁)
+  ⇓-adequate ρ~σ (evalProjr M⇓ M₂⇓)
+    with ⇓-adequate ρ~σ M⇓
+  ...  | N′ , φ₁′ , M⟶ , (σ′ , ρ′~σ′ , eq) , φ₁′≤φ₁
+    with ⇓-adequate ρ′~σ′ M₂⇓
+  ...  | N , φ₂′ , M₂⟶ , T≈N , φ₂′≤φ₂
+    rewrite eq =
+    N ,
+    φ₁′ + φ₂′ ,
+    ⟶*-trans (⟶*-projr-compatible M⟶) (βprojr ⟶⟨ M₂⟶ ⟩ ≡→≤ +-pure-idˡ) ,
+    T≈N ,
+    ≤-trans (≤-+-compatibleˡ φ₂′≤φ₂) (≤-+-compatibleʳ φ₁′≤φ₁)
 
 adequacy : ∅ᵨ ⊢c M ⇓ T # φ
            --------------------------------------------
