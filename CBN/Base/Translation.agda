@@ -35,7 +35,7 @@ data _↦_ : Term n → Comp n → Set where
   transPair : e₁ ↦ M₁
             → e₂ ↦ M₂
               ----------------------------------------
-            → ⟨ e₁ , e₂ ⟩ ↦ return ⟨ ⟪ M₁ ⟫ , ⟪ M₂ ⟫ ⟩
+            → ⟨ e₁ , e₂ ⟩ ↦ ⟨ M₁ , M₂ ⟩
 
   transAbs : e ↦ M
              ---------
@@ -53,11 +53,11 @@ data _↦_ : Term n → Comp n → Set where
 
   transFst : e ↦ M
              -------------------------------------------
-           → fst e ↦ $⟵ M ⋯ $≔ # zero ⋯ # (suc zero) !
+           → fst e ↦ projl M
 
   transSnd : e ↦ M
              -------------------------------------
-           → snd e ↦ $⟵ M ⋯ $≔ # zero ⋯ # zero !
+           → snd e ↦ projr M
 
   transCase : e ↦ M
             → e₁ ↦ M₁
@@ -78,7 +78,7 @@ instance
   Translation.⟦ ⟦Type⟧ ⟧ 𝟙 = 𝑭 𝟙
   Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ⇒ τ₂) = 𝑼 ⟦ τ₁ ⟧ ⇒ ⟦ τ₂ ⟧
   Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ∪ τ₂) = 𝑭 (𝑼 ⟦ τ₁ ⟧ ∪ 𝑼 ⟦ τ₂ ⟧)
-  Translation.⟦ ⟦Type⟧ ⟧ (τ₁ * τ₂) = 𝑭 (𝑼 ⟦ τ₁ ⟧ * 𝑼 ⟦ τ₂ ⟧)
+  Translation.⟦ ⟦Type⟧ ⟧ (τ₁ * τ₂) = ⟦ τ₁ ⟧ & ⟦ τ₂ ⟧
 
   ⟦Ctx⟧ : Translation (Ctx n) (CBPV.Ctx n)
   Translation.⟦ ⟦Ctx⟧ ⟧ Γ m = 𝑼 ⟦ Γ m ⟧
@@ -93,15 +93,9 @@ instance
     (# zero) » ⟦ e₂ ⟧ [ suc ]c
   Translation.⟦ ⟦Term⟧ ⟧ (inl e) = return inl ⟪ ⟦ e ⟧ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ (inr e) = return inr ⟪ ⟦ e ⟧ ⟫
-  Translation.⟦ ⟦Term⟧ ⟧ ⟨ e₁ , e₂ ⟩ = return ⟨ ⟪ ⟦ e₁ ⟧ ⟫ , ⟪ ⟦ e₂ ⟧ ⟫ ⟩
-  Translation.⟦ ⟦Term⟧ ⟧ (fst e) =
-    $⟵ ⟦ e ⟧ ⋯
-    $≔ # zero ⋯
-    # (suc zero) !
-  Translation.⟦ ⟦Term⟧ ⟧ (snd e) =
-    $⟵ ⟦ e ⟧ ⋯
-    $≔ # zero ⋯
-    # zero !
+  Translation.⟦ ⟦Term⟧ ⟧ ⟨ e₁ , e₂ ⟩ = ⟨ ⟦ e₁ ⟧ , ⟦ e₂ ⟧ ⟩
+  Translation.⟦ ⟦Term⟧ ⟧ (fst e) = projl ⟦ e ⟧
+  Translation.⟦ ⟦Term⟧ ⟧ (snd e) = projr ⟦ e ⟧
   Translation.⟦ ⟦Term⟧ ⟧ (case e inl⇒ e₁ inr⇒ e₂) =
     $⟵ ⟦ e ⟧ ⋯
     case # zero inl⇒ ⟦ e₁ ⟧ [ ↑↑ ]c inr⇒ ⟦ e₂ ⟧ [ ↑↑ ]c
@@ -136,18 +130,13 @@ instance
 ↦-preserves (transInr e↦M) (typeInr ⊢e) =
   typeRet (typeInr (typeThunk (↦-preserves e↦M ⊢e)))
 ↦-preserves (transPair e₁↦M₁ e₂↦M₂) (typePair ⊢M₁ ⊢M₂) =
-  typeRet
-    (typePair
-      (typeThunk (↦-preserves e₁↦M₁ ⊢M₁))
-      (typeThunk (↦-preserves e₂↦M₂ ⊢M₂)))
+  typeCpair
+    (↦-preserves e₁↦M₁ ⊢M₁)
+    (↦-preserves e₂↦M₂ ⊢M₂)
 ↦-preserves (transFst e↦M) (typeFst ⊢M) =
-  typeLetin
-    (↦-preserves e↦M ⊢M)
-    (typeSplit typeVar (typeForce typeVar))
+  typeProjl (↦-preserves e↦M ⊢M)
 ↦-preserves (transSnd e↦M) (typeSnd ⊢M) =
-  typeLetin
-    (↦-preserves e↦M ⊢M)
-    (typeSplit typeVar (typeForce typeVar))
+  typeProjr (↦-preserves e↦M ⊢M)
 ↦-preserves (transCase e↦M e₁↦M₁ e₂↦M₂) (typeCase ⊢e ⊢e₁ ⊢e₂) =
   typeLetin
     (↦-preserves e↦M ⊢e)

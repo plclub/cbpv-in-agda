@@ -59,3 +59,12 @@ mutual
     with determinism-val V⇓ V⇓′
   ...  | refl
     rewrite determinism-comp M⇓ M⇓′ = refl
+  determinism-comp evalCpair evalCpair = refl
+  determinism-comp (evalProjl M⇓ M₁⇓) (evalProjl M⇓′ M₁⇓′)
+    with determinism-comp M⇓ M⇓′
+  ...  | refl
+    rewrite determinism-comp M₁⇓ M₁⇓′ = refl
+  determinism-comp (evalProjr M⇓ M₂⇓) (evalProjr M⇓′ M₂⇓′)
+    with determinism-comp M⇓ M⇓′
+  ...  | refl
+    rewrite determinism-comp M₂⇓ M₂⇓′ = refl

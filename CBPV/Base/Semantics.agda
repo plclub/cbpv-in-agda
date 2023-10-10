@@ -22,6 +22,8 @@ mutual
 
     clos⦅_,ƛ_⦆ : Env n → Comp (suc n) → ClosTerminal
 
+    clos⦅_,⟨_,_⟩⦆ : Env n → Comp n → Comp n → ClosTerminal
+
   Env : ℕ → Set
   Env n = Fin n → ClosVal
 
@@ -72,6 +74,18 @@ data _⊢c_⇓_ : Env n → Comp n → ClosTerminal → Set where
           → ρ ⊢c M ⇓ T
             --------------
           → ρ ⊢c V » M ⇓ T
+
+  evalCpair : ρ ⊢c ⟨ M₁ , M₂ ⟩ ⇓ clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆
+
+  evalProjl : ρ ⊢c M ⇓ clos⦅ ρ′ ,⟨ M₁ , M₂ ⟩⦆
+            → ρ′ ⊢c M₁ ⇓ T
+              -------------------------------
+            → ρ ⊢c projl M ⇓ T
+
+  evalProjr : ρ ⊢c M ⇓ clos⦅ ρ′ ,⟨ M₁ , M₂ ⟩⦆
+            → ρ′ ⊢c M₂ ⇓ T
+              -------------------------------
+            → ρ ⊢c projr M ⇓ T
 
   evalApp : ρ ⊢c M ⇓ clos⦅ ρ′ ,ƛ M′ ⦆
           → ρ ⊢v V ⇓ W

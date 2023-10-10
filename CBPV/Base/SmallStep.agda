@@ -21,7 +21,19 @@ data _⟶_ : Comp n → Comp n → Set where
 
   βcaseInr : case inr V inl⇒ M₁ inr⇒ M₂ ⟶ M₂ 〔 V 〕
 
+  βprojl : projl ⟨ M₁ , M₂ ⟩ ⟶ M₁
+
+  βprojr : projr ⟨ M₁ , M₂ ⟩ ⟶ M₂
+
   -- Compatibility rules
+  stepProjl : M ⟶ M′
+              ------------------
+            → projl M ⟶ projl M′
+
+  stepProjr : M ⟶ M′
+              ------------------
+            → projr M ⟶ projr M′
+
   stepApp : M ⟶ M′
             --------------
           → M · V ⟶ M′ · V
@@ -65,3 +77,15 @@ infix 4 _⟶*_
                     → $⟵ M ⋯ N ⟶* $⟵ M′ ⋯ N
 ⟶*-letin-compatible {M = M} {N = N} (_ ∎) = ($⟵ M ⋯ N) ∎
 ⟶*-letin-compatible (x ⟶⟨ y ⟩) = stepLetin x ⟶⟨ ⟶*-letin-compatible y ⟩
+
+⟶*-projl-compatible : M ⟶* M′
+                      -------------------
+                    → projl M ⟶* projl M′
+⟶*-projl-compatible (M ∎) = projl M ∎
+⟶*-projl-compatible (x ⟶⟨ y ⟩) = stepProjl x ⟶⟨ ⟶*-projl-compatible y ⟩
+
+⟶*-projr-compatible : M ⟶* M′
+                      -------------------
+                    → projr M ⟶* projr M′
+⟶*-projr-compatible (M ∎) = projr M ∎
+⟶*-projr-compatible (x ⟶⟨ y ⟩) = stepProjr x ⟶⟨ ⟶*-projr-compatible y ⟩

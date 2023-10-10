@@ -53,6 +53,9 @@ mutual
   (V !) ⦅ σ ⦆c = V ⦅ σ ⦆v !
   ($≔ V ⋯ M) ⦅ σ ⦆c = $≔ V ⦅ σ ⦆v ⋯ M ⦅ exts (exts σ) ⦆c
   (case V inl⇒ M₁ inr⇒ M₂) ⦅ σ ⦆c = case V ⦅ σ ⦆v inl⇒ M₁ ⦅ exts σ ⦆c inr⇒ M₂ ⦅ exts σ ⦆c
+  ⟨ M₁ , M₂ ⟩ ⦅ σ ⦆c = ⟨ M₁ ⦅ σ ⦆c , M₂ ⦅ σ ⦆c ⟩
+  projl M ⦅ σ ⦆c = projl (M ⦅ σ ⦆c)
+  projr M ⦅ σ ⦆c = projr (M ⦅ σ ⦆c)
 
 infix 8 _⦅_⦆v
 infix 8 _⦅_⦆c
@@ -126,6 +129,12 @@ mutual
     rewrite cong-sub-val {V = V} ss refl
           | cong-sub {M = M₁} (cong-exts ss) refl
           | cong-sub {M = M₂} (cong-exts ss) refl = refl
+  cong-sub {M = ⟨ M₁ , M₂ ⟩} ss refl
+    rewrite cong-sub {M = M₁} ss refl | cong-sub {M = M₂} ss refl = refl
+  cong-sub {M = projl M} ss refl
+    rewrite cong-sub {M = M} ss refl = refl
+  cong-sub {M = projr M} ss refl
+    rewrite cong-sub {M = M} ss refl = refl
 
 exts-ids : ∀ {n : ℕ} → exts (id {n}) ≡ id
 exts-ids = extensionality lemma where
@@ -163,6 +172,10 @@ mutual
           | sub-id M₁
           | cong-sub {M = M₂} exts-ids refl
           | sub-id M₂                       = refl
+  sub-id ⟨ M₁ , M₂ ⟩
+    rewrite sub-id M₁ | sub-id M₂ = refl
+  sub-id (projl M) rewrite sub-id M = refl
+  sub-id (projr M) rewrite sub-id M = refl
 
 sub-idR : ∀ {n m : ℕ} {σ : Sub n m}
         → σ ⨟ id ≡ σ
@@ -214,6 +227,10 @@ mutual
           | compose-rename (ext ρ) (ext ω) M₁
           | compose-rename (ext ρ) (ext ω) M₂
           | compose-ext {ρ = ρ} {ω}           = refl
+  compose-rename ρ ω ⟨ M₁ , M₂ ⟩
+    rewrite compose-rename ρ ω M₁ | compose-rename ρ ω M₂ = refl
+  compose-rename ρ ω (projl M) rewrite compose-rename ρ ω M = refl
+  compose-rename ρ ω (projr M) rewrite compose-rename ρ ω M = refl
 
 mutual
   commute-subst-rename-val : ∀ {n m p q : ℕ} (σ : Sub m n) (ρ : Ren p m)
@@ -296,6 +313,13 @@ mutual
         rewrite pf m
               | compose-rename-val ρ suc (σ m)
               | compose-rename-val suc (ext ρ) (σ m) = refl
+  commute-subst-rename σ ρ ρ′ σ′ ⟨ M₁ , M₂ ⟩ pf
+    rewrite commute-subst-rename σ ρ ρ′ σ′ M₁ pf
+          | commute-subst-rename σ ρ ρ′ σ′ M₂ pf = refl
+  commute-subst-rename σ ρ ρ′ σ′ (projl M) pf
+    rewrite commute-subst-rename σ ρ ρ′ σ′ M pf = refl
+  commute-subst-rename σ ρ ρ′ σ′ (projr M) pf
+    rewrite commute-subst-rename σ ρ ρ′ σ′ M pf = refl
 
 exts-seq : ∀ {m n p : ℕ} (σ : Sub m n) (τ : Sub p m)
          → exts σ ⨟ exts τ ≡ exts (σ ⨟ τ)
@@ -343,6 +367,10 @@ mutual
           | cong-sub {M = M₁} (exts-seq σ τ) refl
           | sub-sub (exts σ) (exts τ) M₂
           | cong-sub {M = M₂} (exts-seq σ τ) refl = refl
+  sub-sub σ τ ⟨ M₁ , M₂ ⟩
+    rewrite sub-sub σ τ M₁ | sub-sub σ τ M₂ = refl
+  sub-sub σ τ (projl M) rewrite sub-sub σ τ M = refl 
+  sub-sub σ τ (projr M) rewrite sub-sub σ τ M = refl
 
 sub-assoc : ∀ {n m p q : ℕ} (σ : Sub m n) (τ : Sub p m) (θ : Sub q p)
           → (σ ⨟ τ) ⨟ θ ≡ σ ⨟ τ ⨟ θ
@@ -402,6 +430,10 @@ mutual
           | cong-sub {M = M₁} (ren-ext ρ) refl
           | rename-subst-ren (ext ρ) M₂
           | cong-sub {M = M₂} (ren-ext ρ) refl = refl
+  rename-subst-ren ρ ⟨ M₁ , M₂ ⟩
+    rewrite rename-subst-ren ρ M₁ | rename-subst-ren ρ M₂ = refl
+  rename-subst-ren ρ (projl M) rewrite rename-subst-ren ρ M = refl
+  rename-subst-ren ρ (projr M) rewrite rename-subst-ren ρ M = refl
 
 subst-zero-cons-ids : ∀ {n : ℕ} (V : Val n)
                     → subst-zero V ≡ (V • id)
@@ -548,3 +580,11 @@ mutual
       exts-pf₂ = λ where
                      zero    → typeVar
                      (suc m) → val-typepres-renaming (pf m) λ _ → refl
+  comp-typepres-substitution (typeCpair ⊢M₁ ⊢M₂) pf =
+    typeCpair
+      (comp-typepres-substitution ⊢M₁ pf)
+      (comp-typepres-substitution ⊢M₂ pf)
+  comp-typepres-substitution (typeProjl ⊢M) pf =
+    typeProjl (comp-typepres-substitution ⊢M pf)
+  comp-typepres-substitution (typeProjr ⊢M) pf =
+    typeProjr (comp-typepres-substitution ⊢M pf)

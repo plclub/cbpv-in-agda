@@ -59,6 +59,14 @@ mutual
       (fundamental-lemma-val ⊢V)
       (fundamental-lemma-comp ⊢M₁)
       (fundamental-lemma-comp ⊢M₂)
+  fundamental-lemma-comp {Γ = Γ} (typeCpair ⊢M₁ ⊢M₂) =
+    semanticCpair {Γ = Γ}
+      (fundamental-lemma-comp ⊢M₁)
+      (fundamental-lemma-comp ⊢M₂)
+  fundamental-lemma-comp {Γ = Γ} (typeProjl ⊢M) =
+    semanticProjl {Γ = Γ} (fundamental-lemma-comp ⊢M)
+  fundamental-lemma-comp {Γ = Γ} (typeProjr ⊢M) =
+    semanticProjr {Γ = Γ} (fundamental-lemma-comp ⊢M)
 
 type-soundness : ∅ ⊢c M ⦂ B
                → ∃[ T ] ∅ᵨ ⊢c M ⇓ T

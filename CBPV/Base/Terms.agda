@@ -20,6 +20,9 @@ mutual
     _·_ : Comp n → Val n → Comp n
     _»_ : Val n → Comp n → Comp n
     _! : Val n → Comp n
+    ⟨_,_⟩ : Comp n → Comp n → Comp n
+    projl : Comp n → Comp n
+    projr : Comp n → Comp n
     return_ : Val n → Comp n
     $⟵_⋯_ : Comp n → Comp (suc n) → Comp n
     $≔_⋯_ : Val n → Comp (suc (suc n)) → Comp n
