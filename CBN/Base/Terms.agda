@@ -11,9 +11,12 @@ data Term (n : ℕ) : Set where
   unit : Term n
   inl : Term n → Term n
   inr : Term n → Term n
+  ⟨_,_⟩ : Term n → Term n → Term n
   ƛ_ : Term (suc n) → Term n
   _·_ : Term n → Term n → Term n
   _»_ : Term n → Term n → Term n
+  fst : Term n → Term n
+  snd : Term n → Term n
   case_inl⇒_inr⇒_ : Term n → Term (suc n) → Term (suc n) → Term n
 
 variable e e₁ e₂ : Term n

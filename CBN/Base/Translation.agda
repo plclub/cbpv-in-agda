@@ -9,7 +9,6 @@ import CBPV.Base.SyntacticTyping as CBPV
 open import CBN.Base.SyntacticTyping
 open import CBN.Base.Terms
 open import CBN.Base.Types
-open import CBPV.Base.Eagerlet
 open import CBPV.Base.Renaming
 open import CBPV.Base.Terms hiding (n; m)
 open import CBPV.Base.Types
@@ -33,6 +32,11 @@ data _↦_ : Term n → Comp n → Set where
              ------------------------
            → inr e ↦ return inr ⟪ M ⟫
 
+  transPair : e₁ ↦ M₁
+            → e₂ ↦ M₂
+              ----------------------------------------
+            → ⟨ e₁ , e₂ ⟩ ↦ return ⟨ ⟪ M₁ ⟫ , ⟪ M₂ ⟫ ⟩
+
   transAbs : e ↦ M
              ---------
            → ƛ e ↦ ƛ M
@@ -45,13 +49,21 @@ data _↦_ : Term n → Comp n → Set where
   transSeq : e₁ ↦ M
            → e₂ ↦ N
              ----------------------------------------
-           → e₁ » e₂ ↦  $⇐ M ⋯ (# zero) » N [ suc ]c
+           → e₁ » e₂ ↦  $⟵ M ⋯ (# zero) » N [ suc ]c
+
+  transFst : e ↦ M
+             -------------------------------------------
+           → fst e ↦ $⟵ M ⋯ $≔ # zero ⋯ # (suc zero) !
+
+  transSnd : e ↦ M
+             -------------------------------------
+           → snd e ↦ $⟵ M ⋯ $≔ # zero ⋯ # zero !
 
   transCase : e ↦ M
             → e₁ ↦ M₁
             → e₂ ↦ M₂
               ----------------------------------------------------------------------------
-            → case e inl⇒ e₁ inr⇒ e₂ ↦ $⇐ M ⋯ case # zero inl⇒ M₁ [ ↑↑ ]c inr⇒ M₂ [ ↑↑ ]c
+            → case e inl⇒ e₁ inr⇒ e₂ ↦ $⟵ M ⋯ case # zero inl⇒ M₁ [ ↑↑ ]c inr⇒ M₂ [ ↑↑ ]c
 
 infix 3 _↦_
 
@@ -66,6 +78,7 @@ instance
   Translation.⟦ ⟦Type⟧ ⟧ 𝟙 = 𝑭 𝟙
   Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ⇒ τ₂) = 𝑼 ⟦ τ₁ ⟧ ⇒ ⟦ τ₂ ⟧
   Translation.⟦ ⟦Type⟧ ⟧ (τ₁ ∪ τ₂) = 𝑭 (𝑼 ⟦ τ₁ ⟧ ∪ 𝑼 ⟦ τ₂ ⟧)
+  Translation.⟦ ⟦Type⟧ ⟧ (τ₁ * τ₂) = 𝑭 (𝑼 ⟦ τ₁ ⟧ * 𝑼 ⟦ τ₂ ⟧)
 
   ⟦Ctx⟧ : Translation (Ctx n) (CBPV.Ctx n)
   Translation.⟦ ⟦Ctx⟧ ⟧ Γ m = 𝑼 ⟦ Γ m ⟧
@@ -76,12 +89,21 @@ instance
   Translation.⟦ ⟦Term⟧ ⟧ (ƛ e) = ƛ ⟦ e ⟧
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ · e₂) = ⟦ e₁ ⟧ · ⟪ ⟦ e₂ ⟧ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ (e₁ » e₂) =
-    $⇐ ⟦ e₁ ⟧ ⋯
+    $⟵ ⟦ e₁ ⟧ ⋯
     (# zero) » ⟦ e₂ ⟧ [ suc ]c
   Translation.⟦ ⟦Term⟧ ⟧ (inl e) = return inl ⟪ ⟦ e ⟧ ⟫
   Translation.⟦ ⟦Term⟧ ⟧ (inr e) = return inr ⟪ ⟦ e ⟧ ⟫
+  Translation.⟦ ⟦Term⟧ ⟧ ⟨ e₁ , e₂ ⟩ = return ⟨ ⟪ ⟦ e₁ ⟧ ⟫ , ⟪ ⟦ e₂ ⟧ ⟫ ⟩
+  Translation.⟦ ⟦Term⟧ ⟧ (fst e) =
+    $⟵ ⟦ e ⟧ ⋯
+    $≔ # zero ⋯
+    # (suc zero) !
+  Translation.⟦ ⟦Term⟧ ⟧ (snd e) =
+    $⟵ ⟦ e ⟧ ⋯
+    $≔ # zero ⋯
+    # zero !
   Translation.⟦ ⟦Term⟧ ⟧ (case e inl⇒ e₁ inr⇒ e₂) =
-    $⇐ ⟦ e ⟧ ⋯
+    $⟵ ⟦ e ⟧ ⋯
     case # zero inl⇒ ⟦ e₁ ⟧ [ ↑↑ ]c inr⇒ ⟦ e₂ ⟧ [ ↑↑ ]c
 
 ⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 ⟦ τ ⟧
@@ -104,7 +126,7 @@ instance
     (↦-preserves e₁↦M ⊢e₁)
     (typeThunk (↦-preserves e₂↦N ⊢e₂))
 ↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq ⊢e₁ ⊢e₂) =
-  typeEagerlet
+  typeLetin
     (↦-preserves e₁↦M ⊢e₁)
     (typeSequence
       typeVar
@@ -113,8 +135,21 @@ instance
   typeRet (typeInl (typeThunk (↦-preserves e↦M ⊢e)))
 ↦-preserves (transInr e↦M) (typeInr ⊢e) =
   typeRet (typeInr (typeThunk (↦-preserves e↦M ⊢e)))
+↦-preserves (transPair e₁↦M₁ e₂↦M₂) (typePair ⊢M₁ ⊢M₂) =
+  typeRet
+    (typePair
+      (typeThunk (↦-preserves e₁↦M₁ ⊢M₁))
+      (typeThunk (↦-preserves e₂↦M₂ ⊢M₂)))
+↦-preserves (transFst e↦M) (typeFst ⊢M) =
+  typeLetin
+    (↦-preserves e↦M ⊢M)
+    (typeSplit typeVar (typeForce typeVar))
+↦-preserves (transSnd e↦M) (typeSnd ⊢M) =
+  typeLetin
+    (↦-preserves e↦M ⊢M)
+    (typeSplit typeVar (typeForce typeVar))
 ↦-preserves (transCase e↦M e₁↦M₁ e₂↦M₂) (typeCase ⊢e ⊢e₁ ⊢e₂) =
-  typeEagerlet
+  typeLetin
     (↦-preserves e↦M ⊢e)
     (typeCase
       typeVar
@@ -131,6 +166,9 @@ e↦⟦e⟧ {e = e₁ · e₂} = transApp e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = e₁ » e₂} = transSeq e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = inl e} = transInl e↦⟦e⟧
 e↦⟦e⟧ {e = inr e} = transInr e↦⟦e⟧
+e↦⟦e⟧ {e = ⟨ e₁ , e₂ ⟩ } = transPair e↦⟦e⟧ e↦⟦e⟧
+e↦⟦e⟧ {e = fst e} = transFst e↦⟦e⟧
+e↦⟦e⟧ {e = snd e} = transSnd e↦⟦e⟧
 e↦⟦e⟧ {e = case e inl⇒ e₁ inr⇒ e₂} = transCase e↦⟦e⟧ e↦⟦e⟧ e↦⟦e⟧
 
 translation-preservation : Γ ⊢ e ⦂ τ

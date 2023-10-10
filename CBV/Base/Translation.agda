@@ -9,7 +9,6 @@ import CBPV.Base.SyntacticTyping as CBPV
 open import CBV.Base.SyntacticTyping
 open import CBV.Base.Terms
 open import CBV.Base.Types
-open import CBPV.Base.Eagerlet
 open import CBPV.Base.Renaming
 open import CBPV.Base.Terms hiding (n)
 open import CBPV.Base.Types
@@ -48,25 +47,25 @@ instance
     ⟦Exp⟧ : Translation (Exp n) (Comp n)
     Translation.⟦ ⟦Exp⟧ ⟧ (val v) = return ⟦ v ⟧
     Translation.⟦ ⟦Exp⟧ ⟧ (e₁ · e₂) =
-      $⇐ ⟦ e₁ ⟧ ⋯
-      $⇐ ⟦ e₂ ⟧ [ suc ]c ⋯
+      $⟵ ⟦ e₁ ⟧ ⋯
+      $⟵ ⟦ e₂ ⟧ [ suc ]c ⋯
       (# (suc zero) !) · # zero
     Translation.⟦ ⟦Exp⟧ ⟧ (e₁ » e₂) =
-      $⇐ ⟦ e₁ ⟧ ⋯
+      $⟵ ⟦ e₁ ⟧ ⋯
       # zero » ⟦ e₂ ⟧ [ suc ]c
     Translation.⟦ ⟦Exp⟧ ⟧ (inl e) =
-     $⇐ ⟦ e ⟧ ⋯ return (inl (# zero))
+     $⟵ ⟦ e ⟧ ⋯ return (inl (# zero))
     Translation.⟦ ⟦Exp⟧ ⟧ (inr e) =
-     $⇐ ⟦ e ⟧ ⋯ return (inr (# zero))
+     $⟵ ⟦ e ⟧ ⋯ return (inr (# zero))
     Translation.⟦ ⟦Exp⟧ ⟧ ⟨ e₁ , e₂ ⟩ =
-      $⇐ ⟦ e₁ ⟧ ⋯
-      $⇐ ⟦ e₂ ⟧ [ suc ]c ⋯
+      $⟵ ⟦ e₁ ⟧ ⋯
+      $⟵ ⟦ e₂ ⟧ [ suc ]c ⋯
       return ⟨ # suc zero , # zero ⟩
     Translation.⟦ ⟦Exp⟧ ⟧ (case e inl⇒ e₁ inr⇒ e₂) =
-      $⇐ ⟦ e ⟧ ⋯
+      $⟵ ⟦ e ⟧ ⋯
       case # zero inl⇒ ⟦ e₁ ⟧ [ ↑↑ ]c inr⇒ ⟦ e₂ ⟧ [ ↑↑ ]c
     Translation.⟦ ⟦Exp⟧ ⟧ ($≔ e₁ ⋯ e₂) =
-      $⇐ ⟦ e₁ ⟧ ⋯
+      $⟵ ⟦ e₁ ⟧ ⋯
       $≔ # zero ⋯
       ⟦ e₂ ⟧ [ ↑↑↑ ]c
 
@@ -100,15 +99,15 @@ mutual
   translation-preservation-exp (typeVal ⊩v) =
     typeRet (translation-preservation-value ⊩v)
   translation-preservation-exp (typeApp ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e₁)
-      (typeEagerlet
+      (typeLetin
         (comp-typepres-renaming
           (translation-preservation-exp ⊢e₂)
           λ _ → refl)
         (typeApp (typeForce typeVar) typeVar))
   translation-preservation-exp (typeSeq ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e₁)
       (typeSequence
         typeVar
@@ -116,23 +115,23 @@ mutual
           (translation-preservation-exp ⊢e₂)
           λ _ → refl))
   translation-preservation-exp (typePair ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e₁)
-      (typeEagerlet
+      (typeLetin
         (comp-typepres-renaming
           (translation-preservation-exp ⊢e₂)
           (λ _ → refl))
         (typeRet (typePair typeVar typeVar)))
   translation-preservation-exp (typeInl ⊢e) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e)
       (typeRet (typeInl typeVar))
   translation-preservation-exp (typeInr ⊢e) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e)
       (typeRet (typeInr typeVar))
   translation-preservation-exp (typeCase ⊢e ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e)
       (typeCase
         typeVar
@@ -143,7 +142,7 @@ mutual
           (translation-preservation-exp ⊢e₂)
           λ where zero → refl ; (suc _) → refl))
   translation-preservation-exp (typeSplit ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e₁)
       (typeSplit
         typeVar

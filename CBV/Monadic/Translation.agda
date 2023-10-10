@@ -12,7 +12,6 @@ open import Effects
 module CBV.Monadic.Translation (E : Effect) where
 
 import CBPV.Effects.SyntacticTyping E as CBPV
-open import CBPV.Effects.Eagerlet E
 open import CBPV.Effects.Renaming E
 open import CBPV.Effects.Types E
 open import CBV.Monadic.SyntacticTyping E
@@ -48,16 +47,16 @@ instance
     ⟦Exp⟧ : Translation (Exp n) (Comp n)
     Translation.⟦ ⟦Exp⟧ ⟧ (val v) = return ⟦ v ⟧
     Translation.⟦ ⟦Exp⟧ ⟧ (e₁ · e₂) =
-      $⇐ ⟦ e₁ ⟧ ⋯
-      $⇐ ⟦ e₂ ⟧ [ suc ]c ⋯
+      $⟵ ⟦ e₁ ⟧ ⋯
+      $⟵ ⟦ e₂ ⟧ [ suc ]c ⋯
       (♯ suc zero !) · ♯ zero
     Translation.⟦ ⟦Exp⟧ ⟧ (e₁ » e₂) =
-      $⇐ ⟦ e₁ ⟧ ⋯
+      $⟵ ⟦ e₁ ⟧ ⋯
       ♯ zero » ⟦ e₂ ⟧ [ suc ]c
     Translation.⟦ ⟦Exp⟧ ⟧ (return e) = return ⟪ ⟦ e ⟧ ⟫
     Translation.⟦ ⟦Exp⟧ ⟧ ($⟵ e₁ ⋯ e₂) =
-      return ⟪ $⇐ $⇐ ⟦ e₁ ⟧ ⋯ ♯ zero ! ⋯ $⇐ ⟦ e₂ ⟧ ⋯ ♯ zero ! ⟫
-    Translation.⟦ ⟦Exp⟧ ⟧ (tick) = return ⟪ $⇐ tick ⋯ return ♯ zero ⟫
+      return ⟪ $⟵ $⟵ ⟦ e₁ ⟧ ⋯ ♯ zero ! ⋯ $⟵ ⟦ e₂ ⟧ ⋯ ♯ zero ! ⟫
+    Translation.⟦ ⟦Exp⟧ ⟧ (tick) = return ⟪ $⟵ tick ⋯ return ♯ zero ⟫
 
 ⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ ⟦ τ ⟧
 ⟦Γ∷τ⟧-expand = extensionality λ where
@@ -75,17 +74,15 @@ mutual
   ...  | ⊢⟦e⟧
     rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ} = typeThunk (typeAbs ⊢⟦e⟧)
 
-  translation-preservation-exp : ∀ {n : ℕ} {Γ : Ctx n} {e : Exp n}
-                                     {τ : Type}
-                               → Γ ⊢ e ⦂ τ
+  translation-preservation-exp : Γ ⊢ e ⦂ τ
                                  -------------------------------
                                → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ 𝑭 ⟦ τ ⟧ # pure
   translation-preservation-exp (typeVal Γ⊩v⦂τ) =
     typeRet (translation-preservation-value Γ⊩v⦂τ)
   translation-preservation-exp (typeApp ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e₁)
-      (typeEagerlet
+      (typeLetin
         (comp-typepres-renaming
           (translation-preservation-exp ⊢e₂)
           λ _ → refl)
@@ -93,7 +90,7 @@ mutual
         (≡→≤ +-pure-idˡ))
       (≡→≤ +-pure-idˡ)
   translation-preservation-exp (typeSeq ⊢e₁ ⊢e₂) =
-    typeEagerlet
+    typeLetin
       (translation-preservation-exp ⊢e₁)
       (typeSequence
         typeVar
@@ -111,12 +108,12 @@ mutual
     rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ′} =
     typeRet
       (typeThunk
-        (typeEagerlet
-          (typeEagerlet
+        (typeLetin
+          (typeLetin
             ⊢⟦e₁⟧
             (typeForce typeVar ≤-refl)
             (≡→≤ +-pure-idˡ))
-          (typeEagerlet
+          (typeLetin
             ⊢⟦e₂⟧
             (typeForce typeVar ≤-refl)
             (≡→≤ +-pure-idˡ))
@@ -124,4 +121,4 @@ mutual
   translation-preservation-exp (typeTick tock≤φ) =
     typeRet
       (typeThunk
-        (typeEagerlet (typeTick tock≤φ) (typeRet typeVar) (≡→≤ +-pure-idʳ)))
+        (typeLetin (typeTick tock≤φ) (typeRet typeVar) (≡→≤ +-pure-idʳ)))
