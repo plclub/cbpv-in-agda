@@ -1,9 +1,5 @@
-import Relation.Binary.PropositionalEquality as Eq
-open import Axiom.Extensionality.Propositional using (Extensionality)
 open import Data.Fin using (Fin; suc; zero)
-open import Data.Nat using (ℕ; suc)
-open import Level using (0ℓ)
-open Eq using (_≡_; refl)
+open import Data.Nat using (ℕ)
 
 import CBPV.Base.SyntacticTyping as CBPV
 open import CBN.Base.SyntacticTyping
@@ -12,12 +8,9 @@ open import CBN.Base.Types
 open import CBPV.Base.Renaming
 open import CBPV.Base.Terms hiding (n; m)
 open import CBPV.Base.Types
-open CBPV hiding (Ctx; _∷_; Γ)
+open CBPV hiding (Ctx)
 
 module CBN.Base.Translation where
-
-postulate
-  extensionality : Extensionality 0ℓ 0ℓ
 
 data _↦_ : Term n → Comp n → Set where
   transVar : # m ↦ # m !
@@ -100,53 +93,6 @@ instance
     $⟵ ⟦ e ⟧ ⋯
     case # zero inl⇒ ⟦ e₁ ⟧ [ ↑↑ ]c inr⇒ ⟦ e₂ ⟧ [ ↑↑ ]c
 
-⟦Γ∷τ⟧-expand : ⟦ Γ ∷ τ ⟧ ≡ ⟦ Γ ⟧ CBPV.∷ 𝑼 ⟦ τ ⟧
-⟦Γ∷τ⟧-expand = extensionality λ where
-                                  zero    → refl
-                                  (suc m) → refl
-
-↦-preserves : e ↦ M
-            → Γ ⊢ e ⦂ τ
-              ------------------
-            → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧
-↦-preserves transVar typeVar = typeForce typeVar
-↦-preserves transUnit typeUnit = typeRet typeUnit
-↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} ⊢e)
-  with ↦-preserves e↦M ⊢e
-...  | ih
-  rewrite (⟦Γ∷τ⟧-expand {Γ = Γ} {τ}) = typeAbs ih
-↦-preserves (transApp e₁↦M e₂↦N) (typeApp ⊢e₁ ⊢e₂) =
-  typeApp
-    (↦-preserves e₁↦M ⊢e₁)
-    (typeThunk (↦-preserves e₂↦N ⊢e₂))
-↦-preserves (transSeq e₁↦M e₂↦N) (typeSeq ⊢e₁ ⊢e₂) =
-  typeLetin
-    (↦-preserves e₁↦M ⊢e₁)
-    (typeSequence
-      typeVar
-      (comp-typepres-renaming (↦-preserves e₂↦N ⊢e₂) λ{_ → refl}))
-↦-preserves (transInl e↦M) (typeInl ⊢e) =
-  typeRet (typeInl (typeThunk (↦-preserves e↦M ⊢e)))
-↦-preserves (transInr e↦M) (typeInr ⊢e) =
-  typeRet (typeInr (typeThunk (↦-preserves e↦M ⊢e)))
-↦-preserves (transPair e₁↦M₁ e₂↦M₂) (typePair ⊢M₁ ⊢M₂) =
-  typeCpair
-    (↦-preserves e₁↦M₁ ⊢M₁)
-    (↦-preserves e₂↦M₂ ⊢M₂)
-↦-preserves (transFst e↦M) (typeFst ⊢M) =
-  typeProjl (↦-preserves e↦M ⊢M)
-↦-preserves (transSnd e↦M) (typeSnd ⊢M) =
-  typeProjr (↦-preserves e↦M ⊢M)
-↦-preserves (transCase e↦M e₁↦M₁ e₂↦M₂) (typeCase ⊢e ⊢e₁ ⊢e₂) =
-  typeLetin
-    (↦-preserves e↦M ⊢e)
-    (typeCase
-      typeVar
-      (comp-typepres-renaming (↦-preserves e₁↦M₁ ⊢e₁)
-      λ where zero → refl ; (suc _) → refl)
-      (comp-typepres-renaming (↦-preserves e₂↦M₂ ⊢e₂)
-      λ where zero → refl ; (suc _) → refl))
-
 e↦⟦e⟧ : e ↦ ⟦ e ⟧
 e↦⟦e⟧ {e = # x} = transVar
 e↦⟦e⟧ {e = unit} = transUnit
@@ -159,8 +105,3 @@ e↦⟦e⟧ {e = ⟨ e₁ , e₂ ⟩ } = transPair e↦⟦e⟧ e↦⟦e⟧
 e↦⟦e⟧ {e = fst e} = transFst e↦⟦e⟧
 e↦⟦e⟧ {e = snd e} = transSnd e↦⟦e⟧
 e↦⟦e⟧ {e = case e inl⇒ e₁ inr⇒ e₂} = transCase e↦⟦e⟧ e↦⟦e⟧ e↦⟦e⟧
-
-translation-preservation : Γ ⊢ e ⦂ τ
-                           ----------------------
-                         → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ ⟦ τ ⟧
-translation-preservation = ↦-preserves e↦⟦e⟧

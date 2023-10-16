@@ -6,6 +6,7 @@ open Eq using (_≡_; refl)
 open import CBPV.Base.Terms
 open import CBPV.Base.Types
 open import CBPV.Base.SyntacticTyping
+open import CBPV.Base.Semantics
 
 module CBPV.Base.Renaming where
 
@@ -57,6 +58,34 @@ infix 8 _[_]c
 ↑↑↑ zero = zero
 ↑↑↑ (suc zero) = suc zero
 ↑↑↑ = suc
+
+{-
+mutual
+  val-sempres-renaming : ∀ {ω : Ren n n′}
+                        → ρ ⊢v V ⇓ W
+                        → (∀ (m : Fin n′) → ρ m ≡ ρ′ (ω m))
+                        → ρ′ ⊢v V [ ω ]v ⇓ W
+  val-sempres-renaming = {!!}
+
+  comp-sempres-renaming : ∀ {ω : Ren n n′}
+                        → ρ ⊢c M ⇓ T
+                        → (∀ (m : Fin n′) → ρ m ≡ ρ′ (ω m))
+                        → ρ′ ⊢c M [ ω ]c ⇓ T
+  comp-sempres-renaming evalAbs pf =
+    {!evalAbs!}
+  comp-sempres-renaming (evalRet V⇓) pf =
+    evalRet (val-sempres-renaming V⇓ pf)
+  comp-sempres-renaming (evalSeq V⇓ M⇓) pf = {!!}
+  comp-sempres-renaming evalCpair pf = {!!}
+  comp-sempres-renaming (evalProjl M⇓ M₁⇓) pf = {!!}
+  comp-sempres-renaming (evalProjr M⇓ M₂⇓) pf = {!!}
+  comp-sempres-renaming (evalApp M⇓ V⇓ M′⇓) pf = {!!}
+  comp-sempres-renaming (evalForce V⇓ M⇓) pf = {!!}
+  comp-sempres-renaming (evalLetin M⇓ N⇓) pf = {!!}
+  comp-sempres-renaming (evalSplit V⇓ M⇓) pf = {!!}
+  comp-sempres-renaming (evalCaseInl V⇓ M₁⇓) pf = {!!}
+  comp-sempres-renaming (evalCaseInr V⇓ M₂⇓) pf = {!!}
+-}
 
 mutual
   val-typepres-renaming : ∀ {ρ : Ren n n′}

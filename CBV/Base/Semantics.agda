@@ -1,9 +1,9 @@
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 
-open import CBPV.Base.Terms
+open import CBV.Base.Terms
 
-module CBPV.Base.Semantics where
+module CBV.Base.Semantics where
 
 mutual
   data ClosVal : Set where
@@ -41,8 +41,8 @@ _∷ᵨ_ : Env n → ClosVal → Env (suc n)
 
 infixl 5 _∷ᵨ_
 
-data _⊢v_⇓_ : Env n → Val n → ClosVal → Set where
-  evalVar : ρ ⊢v # m ⇓ ρ m
+data _⊩_⇓_ : Env n → Val n → ClosVal → Set where
+  evalVar :  ρ ⊢v # m ⇓ ρ m
 
   evalUnit : ρ ⊢v unit ⇓ unit
 
@@ -63,7 +63,7 @@ data _⊢v_⇓_ : Env n → Val n → ClosVal → Set where
 
 infix 4 _⊢v_⇓_
 
-data _⊢c_⇓_ : Env n → Comp n → ClosTerminal → Set where
+data _⊢_⇓_ : Env n → Comp n → Domain → Set where
   evalAbs : ρ ⊢c ƛ M ⇓ clos⦅ ρ ,ƛ M ⦆
 
   evalRet : ρ ⊢v V ⇓ W

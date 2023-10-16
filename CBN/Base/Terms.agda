@@ -19,7 +19,7 @@ data Term (n : ℕ) : Set where
   snd : Term n → Term n
   case_inl⇒_inr⇒_ : Term n → Term (suc n) → Term (suc n) → Term n
 
-variable e e₁ e₂ : Term n
+variable e e′ e₁ e₂ : Term n
 
 infix 5 ƛ_
 infixl 7 _»_
