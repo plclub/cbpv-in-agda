@@ -29,5 +29,3 @@ import CBPV.Base.TypeSoundness
 import CBPV.Base.Adequacy
 import CBN.Base.Translation
 import CBV.Base.Translation
-
-

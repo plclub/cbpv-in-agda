@@ -137,12 +137,12 @@ instance
             → Γ ⊢ e ⦂ τ
               -------------------------
             → ⟦ Γ ⟧ ⊢c M ⦂ ⟦ τ ⟧ # pure
-↦-preserves transVar typeVar = typeForce typeVar pure-≤
-↦-preserves transUnit typeUnit = typeRet typeUnit
+↦-preserves transVar typeVar = typeForce typeVar ≤-refl
+↦-preserves transUnit typeUnit = typeRet typeUnit ≤-refl
 ↦-preserves (transInl e↦M) (typeInl ⊢e) =
-  typeRet (typeInl (typeThunk (↦-preserves e↦M ⊢e)))
+  typeRet (typeInl (typeThunk (↦-preserves e↦M ⊢e))) ≤-refl
 ↦-preserves (transInr e↦M) (typeInr ⊢e) =
-  typeRet (typeInr (typeThunk (↦-preserves e↦M ⊢e)))
+  typeRet (typeInr (typeThunk (↦-preserves e↦M ⊢e))) ≤-refl
 ↦-preserves {Γ = Γ} (transAbs e↦M) (typeAbs {τ = τ} ⊢e)
   with ↦-preserves e↦M ⊢e
 ...  | ⊢M
@@ -158,10 +158,10 @@ instance
     ⊢M
     (typeSequence typeVar (comp-typepres-renaming ⊢N λ{_ → refl}))
     (≡→≤ +-pure-idʳ)
-↦-preserves (transReturn e↦M) (typeReturn ⊢e)
+↦-preserves (transReturn e↦M) (typeReturn ⊢e pure≤φ)
   with ↦-preserves e↦M ⊢e
 ...  | ⊢M                 =
-  typeRet (typeThunk (typeRet (typeThunk ⊢M)))
+  typeRet (typeThunk (typeRet (typeThunk ⊢M) pure≤φ)) ≤-refl
 ↦-preserves {Γ = Γ} (transBind e₁↦M e₂↦N) (typeBind {τ′ = τ′} ⊢e₁ ⊢e₂ φ₁+φ₂≤φ)
   with ↦-preserves e₁↦M ⊢e₁ | ↦-preserves e₂↦N ⊢e₂
 ...  | ⊢M                   | ⊢N
@@ -178,6 +178,7 @@ instance
           (typeForce typeVar ≤-refl)
           (≡→≤ +-pure-idˡ))
         φ₁+φ₂≤φ))
+   ≤-refl
 ↦-preserves (transPair e₁↦M₁ e₂↦M₂) (typePair ⊢M₁ ⊢M₂) =
   typeCpair
     (↦-preserves e₁↦M₁ ⊢M₁)
@@ -201,8 +202,9 @@ instance
     (typeThunk
       (typeLetin
         (typeTick tock≤φ)
-        (typeRet (typeThunk (typeRet typeVar)))
+        (typeRet (typeThunk (typeRet typeVar ≤-refl)) ≤-refl)
         (≡→≤ +-pure-idʳ)))
+  ≤-refl
 
 e↦⟦e⟧ : e ↦ ⟦ e ⟧
 e↦⟦e⟧ {e = # x} = transVar

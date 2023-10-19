@@ -83,6 +83,7 @@ mutual
               → Γ ⊢c V ! ⦂ B # φ₂
 
     typeRet : Γ ⊢v V ⦂ A
+            → pure ≤ φ
               -----------------------
             → Γ ⊢c return V ⦂ 𝑭 A # φ
 
@@ -118,7 +119,7 @@ type-subeff (typeAbs pf) φ≤ψ = typeAbs (type-subeff pf φ≤ψ)
 type-subeff (typeApp pf₁ pf₂) φ≤ψ = typeApp (type-subeff pf₁ φ≤ψ) pf₂
 type-subeff (typeSequence pf₁ pf₂) φ≤ψ = typeSequence pf₁ (type-subeff pf₂ φ≤ψ)
 type-subeff (typeForce pf φ₁≤φ₂) φ₂≤φ₃ = typeForce pf (≤-trans φ₁≤φ₂ φ₂≤φ₃)
-type-subeff (typeRet pf) φ≤ψ = typeRet pf
+type-subeff (typeRet pf pure≤φ) φ≤ψ = typeRet pf (≤-trans pure≤φ φ≤ψ)
 type-subeff (typeLetin pf₁ pf₂ φ₁+φ₂≤φ) φ≤ψ =
   typeLetin pf₁ pf₂ (≤-trans φ₁+φ₂≤φ φ≤ψ)
 type-subeff (typeSplit ⊢V ⊢M) φ≤ψ = typeSplit ⊢V (type-subeff ⊢M φ≤ψ)

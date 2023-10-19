@@ -26,7 +26,7 @@ mutual
   𝒲⟦ _ ⟧ _ = ⊥
 
   𝒯⟦_⟧ : CompType → ClosTerminal × Eff → Set
-  𝒯⟦ 𝑭 A ⟧ (return V , φ) = V ∈ 𝒲⟦ A ⟧
+  𝒯⟦ 𝑭 A ⟧ (return V , φ) = V ∈ 𝒲⟦ A ⟧ × pure ≤ φ
   𝒯⟦ A ⇒ B ⟧ (clos⦅ ρ ,ƛ M ⦆ , φ) =
     ∀ {W : ClosVal} → W ∈ 𝒲⟦ A ⟧ → (ρ ∷ᵨ W , M , φ) ∈ ℳ⟦ B ⟧
   𝒯⟦ B₁ & B₂ ⟧ (clos⦅ ρ ,⟨ M₁ , M₂ ⟩⦆ , φ) =
@@ -173,12 +173,13 @@ semanticForce ⊨V φ′≤φ ⊨ρ
   T , φ₁ , φ₂ , evalForce V⇓ M⇓ , T∈𝒯 , ≤-trans φ₁+φ₂≤φ′ φ′≤φ
 
 semanticRet : Γ ⊨v V ⦂ A
+            → pure ≤ φ
               -----------------------
             → Γ ⊨c return V ⦂ 𝑭 A # φ
-semanticRet {φ = φ} ⊨V ⊨ρ
+semanticRet {φ = φ} ⊨V pure≤φ ⊨ρ
   with ⊨V ⊨ρ
 ...  |  W , V⇓ , W∈𝐺⟦A⟧ =
-  return W , pure , φ , evalRet V⇓ , W∈𝐺⟦A⟧ , ≡→≤ +-pure-idˡ
+  return W , pure , φ , evalRet V⇓ , (W∈𝐺⟦A⟧ , pure≤φ) , ≡→≤ +-pure-idˡ
 
 semanticLetin : Γ ⊨c M ⦂ 𝑭 A # φ₁
               → Γ ∷ A ⊨c N ⦂ B # φ₂
@@ -187,7 +188,7 @@ semanticLetin : Γ ⊨c M ⦂ 𝑭 A # φ₁
               → Γ ⊨c $⟵ M ⋯ N ⦂ B # φ
 semanticLetin ⊨M ⊨N φ₁+φ₂≤φ ⊨ρ
   with ⊨M ⊨ρ
-...  | T′@(return W) , φ₁₁ , φ₁₂ , M⇓ , W∈𝒲 , φ₁₁+φ₁₂≤φ₁
+...  | T′@(return W) , φ₁₁ , φ₁₂ , M⇓ , (W∈𝒲 , pure≤φ₁₂) , φ₁₁+φ₁₂≤φ₁
   with ⊨N (⊨-ext ⊨ρ W∈𝒲)
 ...  | T , φ₂₁ , φ₂₂ , N⇓ , T∈𝒯 , φ₂₁+φ₂₂≤φ₂ =
   T , φ₁₁ + φ₂₁ , φ₂₂ , evalLetin M⇓ N⇓ , T∈𝒯 ,
@@ -195,7 +196,7 @@ semanticLetin ⊨M ⊨N φ₁+φ₂≤φ ⊨ρ
   where
     subeff-lemma =
       ≤-trans
-        (≤-trans (≡→≤ +-assoc) (≤-+-compatibleʳ (≤-+-invertʳ φ₁₁+φ₁₂≤φ₁)))
+        (≤-trans (≡→≤ +-assoc) (≤-+-compatibleʳ (≤-+-invertʳ φ₁₁+φ₁₂≤φ₁ pure≤φ₁₂)))
         (≤-trans (≤-+-compatibleˡ φ₂₁+φ₂₂≤φ₂) φ₁+φ₂≤φ)
 
 semanticSplit : Γ ⊨v V ⦂ A₁ * A₂
@@ -227,6 +228,7 @@ semanticTick : ∀ {n : ℕ} {Γ : Ctx n} {φ : Eff}
              → tock ≤ φ
                -----------------
              → Γ ⊨c tick ⦂ 𝑭 𝟙 # φ
-semanticTick tock≤φ _ = return unit , tock , pure , evalTick , tt , subeff-lemma
+semanticTick tock≤φ _ =
+  return unit , tock , pure , evalTick , (tt , ≤-refl) , subeff-lemma
   where
     subeff-lemma = ≤-trans (≡→≤ +-pure-idʳ) tock≤φ

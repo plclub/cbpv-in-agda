@@ -100,8 +100,8 @@ mutual
       (comp-typepres-renaming ⊢M pf)
   comp-typepres-renaming (typeForce ⊢V φ′≤φ) pf =
     typeForce (val-typepres-renaming ⊢V pf) φ′≤φ
-  comp-typepres-renaming (typeRet ⊢V) pf =
-    typeRet (val-typepres-renaming ⊢V pf)
+  comp-typepres-renaming (typeRet ⊢V pure≤φ) pf =
+    typeRet (val-typepres-renaming ⊢V pf) pure≤φ
   comp-typepres-renaming (typeLetin ⊢M ⊢N φ₁+φ₂≤φ) pf =
     typeLetin
       (comp-typepres-renaming ⊢M pf)

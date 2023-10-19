@@ -71,6 +71,7 @@ data _⊢_⦂_ : Ctx n → Term n → Type → Set where
            → Γ ⊢ case e inl⇒ e₁ inr⇒ e₂ ⦂ τ
 
   typeReturn : Γ ⊢ e ⦂ τ
+             → pure ≤ φ
                --------------------
              → Γ ⊢ return e ⦂ 𝑻 φ τ
 

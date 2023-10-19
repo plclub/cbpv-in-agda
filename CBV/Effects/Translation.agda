@@ -85,9 +85,9 @@ mutual
   translation-preservation-value : Γ ⊩ v ⦂ τ # φ
                                    ----------------------
                                  → ⟦ Γ ⟧ ⊢v ⟦ v ⟧ ⦂ ⟦ τ ⟧
-  translation-preservation-value typeUnit = typeUnit
-  translation-preservation-value typeVar = typeVar
-  translation-preservation-value {Γ = Γ} (typeAbs {τ = τ} ⊢e′)
+  translation-preservation-value (typeUnit _) = typeUnit
+  translation-preservation-value (typeVar _) = typeVar
+  translation-preservation-value {Γ = Γ} (typeAbs {τ = τ} ⊢e′ _)
     with translation-preservation-exp ⊢e′
   ...  | ⊢⟦e⟧
     rewrite ⟦Γ∷τ⟧-expand {Γ = Γ} {τ} = typeThunk (typeAbs ⊢⟦e⟧)
@@ -104,7 +104,7 @@ mutual
                                  ----------------------------
                                → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ 𝑭 ⟦ τ ⟧ # φ
   translation-preservation-exp (typeVal ⊩v) =
-    typeRet (translation-preservation-value ⊩v)
+    typeRet (translation-preservation-value ⊩v) (type-val-eff-pure-≤ ⊩v)
   translation-preservation-exp (typeApp ⊢e₁ ⊢e₂ φ₁+φ₂+φ₃≤φ) =
     typeLetin
       (translation-preservation-exp ⊢e₁)
@@ -131,18 +131,18 @@ mutual
         (comp-typepres-renaming
           (translation-preservation-exp ⊢e₂)
           (λ _ → refl))
-        (typeRet (typePair typeVar typeVar))
+        (typeRet (typePair typeVar typeVar) ≤-refl)
         (≡→≤ +-pure-idʳ))
       φ₁+φ₂≤φ
   translation-preservation-exp (typeInl ⊢e) =
     typeLetin
       (translation-preservation-exp ⊢e)
-      (typeRet (typeInl typeVar))
+      (typeRet (typeInl typeVar) ≤-refl)
       (≡→≤ +-pure-idʳ)
   translation-preservation-exp (typeInr ⊢e) =
     typeLetin
       (translation-preservation-exp ⊢e)
-      (typeRet (typeInr typeVar))
+      (typeRet (typeInr typeVar) ≤-refl)
       (≡→≤ +-pure-idʳ)
   translation-preservation-exp (typeCase ⊢e ⊢e₁ ⊢e₂ φ₁+φ₂≤φ) =
     typeLetin

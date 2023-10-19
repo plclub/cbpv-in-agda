@@ -78,7 +78,7 @@ mutual
                                  -------------------------------
                                → ⟦ Γ ⟧ ⊢c ⟦ e ⟧ ⦂ 𝑭 ⟦ τ ⟧ # pure
   translation-preservation-exp (typeVal Γ⊩v⦂τ) =
-    typeRet (translation-preservation-value Γ⊩v⦂τ)
+    typeRet (translation-preservation-value Γ⊩v⦂τ) ≤-refl
   translation-preservation-exp (typeApp ⊢e₁ ⊢e₂) =
     typeLetin
       (translation-preservation-exp ⊢e₁)
@@ -86,7 +86,7 @@ mutual
         (comp-typepres-renaming
           (translation-preservation-exp ⊢e₂)
           λ _ → refl)
-        (typeApp (typeForce typeVar pure-≤) typeVar)
+        (typeApp (typeForce typeVar ≤-refl) typeVar)
         (≡→≤ +-pure-idˡ))
       (≡→≤ +-pure-idˡ)
   translation-preservation-exp (typeSeq ⊢e₁ ⊢e₂) =
@@ -98,8 +98,8 @@ mutual
           (translation-preservation-exp ⊢e₂)
           λ _ → refl))
       (≡→≤ +-pure-idˡ)
-  translation-preservation-exp (typeReturn ⊢e) =
-    typeRet (typeThunk (type-subeff (translation-preservation-exp ⊢e) pure-≤))
+  translation-preservation-exp (typeReturn ⊢e pure≤φ) =
+    typeRet (typeThunk (type-subeff (translation-preservation-exp ⊢e) pure≤φ)) ≤-refl
   translation-preservation-exp {Γ = Γ} (typeBind {τ′ = τ′} ⊢e₁ ⊢e₂ φ₁+φ₂≤φ)
     with translation-preservation-exp ⊢e₁
   ...  | ⊢⟦e₁⟧
@@ -118,7 +118,9 @@ mutual
             (typeForce typeVar ≤-refl)
             (≡→≤ +-pure-idˡ))
           φ₁+φ₂≤φ))
+    ≤-refl
   translation-preservation-exp (typeTick tock≤φ) =
     typeRet
       (typeThunk
-        (typeLetin (typeTick tock≤φ) (typeRet typeVar) (≡→≤ +-pure-idʳ)))
+        (typeLetin (typeTick tock≤φ) (typeRet typeVar ≤-refl) (≡→≤ +-pure-idʳ)))
+    ≤-refl

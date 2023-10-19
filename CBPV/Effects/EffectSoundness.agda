@@ -45,8 +45,8 @@ mutual
       (fundamental-lemma-comp ⊢M)
   fundamental-lemma-comp {Γ = Γ} (typeForce ⊢V φ′≤φ) =
     semanticForce {Γ = Γ} (fundamental-lemma-val ⊢V) φ′≤φ
-  fundamental-lemma-comp {Γ = Γ} (typeRet ⊢V) =
-    semanticRet {Γ = Γ} (fundamental-lemma-val ⊢V)
+  fundamental-lemma-comp {Γ = Γ} (typeRet ⊢V pure≤φ) =
+    semanticRet {Γ = Γ} (fundamental-lemma-val ⊢V) pure≤φ
   fundamental-lemma-comp (typeLetin {B = B} ⊢M ⊢N φ₁+φ₂≤φ) =
     semanticLetin {B = B}
       (fundamental-lemma-comp ⊢M)
@@ -72,9 +72,9 @@ mutual
   fundamental-lemma-comp {Γ = Γ} (typeProjr ⊢M) =
     semanticProjr {Γ = Γ} (fundamental-lemma-comp ⊢M)
 
-effect-soundness : ∅ ⊢c M ⦂ B # φ
+effect-soundness : ∅ ⊢c M ⦂ 𝑭 A # φ
                  → ∃[ T ] ∃[ φ′ ] φ′ ≤ φ × ∅ᵨ ⊢c M ⇓ T # φ′
 effect-soundness ⊢M
   with fundamental-lemma-comp ⊢M (λ ())
-...  | T , φ′ , _ , M⇓ , _ , φ′+φ″≤φ =
-  T , φ′ , ≤-+-invertʳ φ′+φ″≤φ , M⇓
+...  | T@(return _) , φ′ , _ , M⇓ , (_ , pure≤φ″) , φ′+φ″≤φ =
+  T , φ′ , ≤-+-invertʳ φ′+φ″≤φ pure≤φ″ , M⇓

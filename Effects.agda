@@ -38,32 +38,21 @@ module Effects where
                       → φ₁ ≤ φ₂
                       → ψ + φ₁ ≤ ψ + φ₂
 
-      pure-≤ : ∀ {φ : Eff} → pure ≤ φ
-
     variable φ φ′ φ₁ φ₂ φ₃ ψ ψ₁ ψ₂ : Eff
 
   module Properties (E : Effect) where
     open Effect E
 
-    ≤-+ʳ : φ₁ ≤ φ₁ + φ₂
-    ≤-+ʳ {φ₁} {φ₂}
-      with ≤-+-compatibleˡ {pure} {φ₂} {φ₁} pure-≤
+    ≤-+ʳ : pure ≤ φ₂ → φ₁ ≤ φ₁ + φ₂
+    ≤-+ʳ {φ₂} {φ₁} pure≤φ₂
+      with ≤-+-compatibleˡ {pure} {φ₂} {φ₁} pure≤φ₂
     ...  | pf
       rewrite +-pure-idʳ {φ₁} = pf
 
-    ≤-+ˡ : φ₁ ≤ φ₂ + φ₁
-    ≤-+ˡ {φ₁} {φ₂}
-      with ≤-+-compatibleʳ {pure} {φ₂} {φ₁} pure-≤
-    ...  | pf
-      rewrite +-pure-idˡ {φ₁} = pf
-
     ≤-+-invertʳ : φ₁ + φ ≤ φ₂
+                → pure ≤ φ
                 → φ₁ ≤ φ₂
-    ≤-+-invertʳ pf = ≤-trans ≤-+ʳ pf
-
-    ≤-+-invertˡ : φ + φ₁ ≤ φ₂
-                → φ₁ ≤ φ₂
-    ≤-+-invertˡ pf = ≤-trans ≤-+ˡ pf
+    ≤-+-invertʳ pf pure≤φ = ≤-trans (≤-+ʳ pure≤φ) pf
 
     ≡→≤ : φ₁ ≡ φ₂
         → φ₁ ≤ φ₂

@@ -559,8 +559,8 @@ mutual
       (comp-typepres-substitution ⊢M pf)
   comp-typepres-substitution (typeForce ⊢V φ′≤φ) pf =
     typeForce (val-typepres-substitution ⊢V pf) φ′≤φ
-  comp-typepres-substitution (typeRet ⊢V) pf =
-    typeRet (val-typepres-substitution ⊢V pf)
+  comp-typepres-substitution (typeRet ⊢V pure≤φ) pf =
+    typeRet (val-typepres-substitution ⊢V pf) pure≤φ
   comp-typepres-substitution (typeLetin ⊢M ⊢N φ₁+φ₂≤φ) pf =
     typeLetin
       (comp-typepres-substitution ⊢M pf)
