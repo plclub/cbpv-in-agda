@@ -1,3 +1,11 @@
+{- Effects and Coeffects in Call-By-Push-Value -}
+
+-- This is an Agda formalization of Section 2 of "Effects and Coeffects in
+-- Call-By-Push-Value", available at https://github.com/plclub/cbpv-in-agda
+
+-- This code has been tested with Agda version 2.6.2.2 and standard library
+-- version 1.7.1.
+
 module Everything where
 
 {- Section 2.1 -}
