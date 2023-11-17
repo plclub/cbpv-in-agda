@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html><head><meta charset="utf-8"><title>CBN.Monadic.Types</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Keyword">open</a> <a id="6" class="Keyword">import</a> <a id="13" href="Effects.html" class="Module">Effects</a>
+
+<a id="22" class="Keyword">module</a> <a id="29" href="CBN.Monadic.Types.html" class="Module">CBN.Monadic.Types</a> <a id="47" class="Symbol">(</a><a id="48" href="CBN.Monadic.Types.html#48" class="Bound">E</a> <a id="50" class="Symbol">:</a> <a id="52" href="Effects.html#109" class="Record">Effect</a><a id="58" class="Symbol">)</a> <a id="60" class="Keyword">where</a>
+
+<a id="67" class="Keyword">open</a> <a id="72" href="Effects.html#109" class="Module">Effect</a> <a id="79" href="CBN.Monadic.Types.html#48" class="Bound">E</a>
+
+<a id="82" class="Keyword">data</a> <a id="Type"></a><a id="87" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="92" class="Symbol">:</a> <a id="94" href="Agda.Primitive.html#326" class="Primitive">Set</a> <a id="98" class="Keyword">where</a>
+  <a id="Type.𝟙"></a><a id="106" href="CBN.Monadic.Types.html#106" class="InductiveConstructor">𝟙</a> <a id="108" class="Symbol">:</a> <a id="110" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a>
+  <a id="Type._⇒_"></a><a id="117" href="CBN.Monadic.Types.html#117" class="InductiveConstructor Operator">_⇒_</a> <a id="121" class="Symbol">:</a> <a id="123" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="128" class="Symbol">→</a> <a id="130" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="135" class="Symbol">→</a> <a id="137" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a>
+  <a id="Type.𝑻"></a><a id="144" href="CBN.Monadic.Types.html#144" class="InductiveConstructor">𝑻</a> <a id="146" class="Symbol">:</a> <a id="148" href="Effects.html#179" class="Field">Eff</a> <a id="152" class="Symbol">→</a> <a id="154" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="159" class="Symbol">→</a> <a id="161" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a>
+  <a id="Type._∪_"></a><a id="168" href="CBN.Monadic.Types.html#168" class="InductiveConstructor Operator">_∪_</a> <a id="172" class="Symbol">:</a> <a id="174" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="179" class="Symbol">→</a> <a id="181" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="186" class="Symbol">→</a> <a id="188" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a>
+  <a id="Type._*_"></a><a id="195" href="CBN.Monadic.Types.html#195" class="InductiveConstructor Operator">_*_</a> <a id="199" class="Symbol">:</a> <a id="201" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="206" class="Symbol">→</a> <a id="208" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a> <a id="213" class="Symbol">→</a> <a id="215" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a>
+
+<a id="221" class="Keyword">variable</a> <a id="230" href="CBN.Monadic.Types.html#230" class="Generalizable">τ</a> <a id="232" href="CBN.Monadic.Types.html#232" class="Generalizable">τ′</a> <a id="235" href="CBN.Monadic.Types.html#235" class="Generalizable">τ₁</a> <a id="238" href="CBN.Monadic.Types.html#238" class="Generalizable">τ₂</a> <a id="241" class="Symbol">:</a> <a id="243" href="CBN.Monadic.Types.html#87" class="Datatype">Type</a>
+
+<a id="249" class="Keyword">infixr</a> <a id="256" class="Number">7</a> <a id="258" href="CBN.Monadic.Types.html#117" class="InductiveConstructor Operator">_⇒_</a>
+<a id="262" class="Keyword">infixl</a> <a id="269" class="Number">8</a> <a id="271" href="CBN.Monadic.Types.html#195" class="InductiveConstructor Operator">_*_</a>
+<a id="275" class="Keyword">infixl</a> <a id="282" class="Number">8</a> <a id="284" href="CBN.Monadic.Types.html#168" class="InductiveConstructor Operator">_∪_</a>
+</pre></body></html>

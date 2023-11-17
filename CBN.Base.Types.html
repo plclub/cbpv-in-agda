@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<html><head><meta charset="utf-8"><title>CBN.Base.Types</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Keyword">module</a> <a id="8" href="CBN.Base.Types.html" class="Module">CBN.Base.Types</a> <a id="23" class="Keyword">where</a>
+
+<a id="30" class="Keyword">data</a> <a id="Type"></a><a id="35" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="40" class="Symbol">:</a> <a id="42" href="Agda.Primitive.html#326" class="Primitive">Set</a> <a id="46" class="Keyword">where</a>
+  <a id="Type.𝟙"></a><a id="54" href="CBN.Base.Types.html#54" class="InductiveConstructor">𝟙</a> <a id="56" class="Symbol">:</a> <a id="58" href="CBN.Base.Types.html#35" class="Datatype">Type</a>
+  <a id="Type._⇒_"></a><a id="65" href="CBN.Base.Types.html#65" class="InductiveConstructor Operator">_⇒_</a> <a id="69" class="Symbol">:</a> <a id="71" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="76" class="Symbol">→</a> <a id="78" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="83" class="Symbol">→</a> <a id="85" href="CBN.Base.Types.html#35" class="Datatype">Type</a>
+  <a id="Type._∪_"></a><a id="92" href="CBN.Base.Types.html#92" class="InductiveConstructor Operator">_∪_</a> <a id="96" class="Symbol">:</a> <a id="98" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="103" class="Symbol">→</a> <a id="105" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="110" class="Symbol">→</a> <a id="112" href="CBN.Base.Types.html#35" class="Datatype">Type</a>
+  <a id="Type._*_"></a><a id="119" href="CBN.Base.Types.html#119" class="InductiveConstructor Operator">_*_</a> <a id="123" class="Symbol">:</a> <a id="125" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="130" class="Symbol">→</a> <a id="132" href="CBN.Base.Types.html#35" class="Datatype">Type</a> <a id="137" class="Symbol">→</a> <a id="139" href="CBN.Base.Types.html#35" class="Datatype">Type</a>
+
+<a id="145" class="Keyword">variable</a> <a id="154" href="CBN.Base.Types.html#154" class="Generalizable">τ</a> <a id="156" href="CBN.Base.Types.html#156" class="Generalizable">τ′</a> <a id="159" href="CBN.Base.Types.html#159" class="Generalizable">τ₁</a> <a id="162" href="CBN.Base.Types.html#162" class="Generalizable">τ₂</a> <a id="165" class="Symbol">:</a> <a id="167" href="CBN.Base.Types.html#35" class="Datatype">Type</a>
+
+<a id="173" class="Keyword">infixr</a> <a id="180" class="Number">7</a> <a id="182" href="CBN.Base.Types.html#65" class="InductiveConstructor Operator">_⇒_</a>
+<a id="186" class="Keyword">infixl</a> <a id="193" class="Number">8</a> <a id="195" href="CBN.Base.Types.html#119" class="InductiveConstructor Operator">_*_</a>
+<a id="199" class="Keyword">infixl</a> <a id="206" class="Number">8</a> <a id="208" href="CBN.Base.Types.html#92" class="InductiveConstructor Operator">_∪_</a>
+</pre></body></html>
