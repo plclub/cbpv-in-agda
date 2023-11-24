@@ -10,32 +10,56 @@
 <a id="299" class="Keyword">module</a> <a id="306" href="Everything.html" class="Module">Everything</a> <a id="317" class="Keyword">where</a>
 
 <a id="324" class="Comment">{- Section 2.1 -}</a>
-<a id="342" class="Keyword">import</a> <a id="349" href="Effects.html" class="Module">Effects</a>
-<a id="357" class="Keyword">import</a> <a id="364" href="CBPV.Effects.SyntacticTyping.html" class="Module">CBPV.Effects.SyntacticTyping</a>
 
-<a id="394" class="Comment">{- Section 2.2 -}</a>
-<a id="412" class="Keyword">import</a> <a id="419" href="CBPV.Effects.Semantics.html" class="Module">CBPV.Effects.Semantics</a>
-<a id="442" class="Keyword">import</a> <a id="449" href="CBPV.Effects.Determinism.html" class="Module">CBPV.Effects.Determinism</a>
+<a id="343" class="Keyword">import</a> <a id="350" href="Effects.html" class="Module">Effects</a> <a id="358" class="Comment">-- Preordered monoid along with properties of preordered monoids</a>
+               <a id="438" class="Comment">-- (named &#39;effects&#39; as that is how they are used)</a>
 
-<a id="475" class="Comment">{- Section 2.3 -}</a>
-<a id="493" class="Keyword">import</a> <a id="500" href="CBPV.Effects.SemanticTyping.html" class="Module">CBPV.Effects.SemanticTyping</a>
-<a id="528" class="Keyword">import</a> <a id="535" href="CBPV.Effects.EffectSoundness.html" class="Module">CBPV.Effects.EffectSoundness</a>
+<a id="489" class="Keyword">import</a> <a id="496" href="CBPV.Effects.SyntacticTyping.html" class="Module">CBPV.Effects.SyntacticTyping</a>  <a id="526" class="Comment">-- Type-and-effect system for CBPV</a>
 
-<a id="565" class="Comment">{- Section 2.4 -}</a>
-<a id="583" class="Keyword">import</a> <a id="590" href="CBV.Effects.Translation.html" class="Module">CBV.Effects.Translation</a>
-<a id="614" class="Keyword">import</a> <a id="621" href="CBN.Monadic.Translation.html" class="Module">CBN.Monadic.Translation</a>
-<a id="645" class="Keyword">import</a> <a id="652" href="CBV.Monadic.Translation.html" class="Module">CBV.Monadic.Translation</a>
+<a id="562" class="Comment">{- Section 2.2 -}</a>
 
-<a id="677" class="Comment">{- Section 3: Extra -}</a>
-<a id="700" class="Keyword">import</a> <a id="707" href="CBPV.Effects.Adequacy.html" class="Module">CBPV.Effects.Adequacy</a>
+<a id="581" class="Keyword">import</a> <a id="588" href="CBPV.Effects.Semantics.html" class="Module">CBPV.Effects.Semantics</a> <a id="611" class="Comment">-- Environment-based big-step operational</a>
+                              <a id="683" class="Comment">-- semantics for CBPV instrumented with effects</a>
 
-<a id="730" class="Comment">{- Extra -}</a>
-<a id="742" class="Keyword">import</a> <a id="749" href="CBPV.Base.SyntacticTyping.html" class="Module">CBPV.Base.SyntacticTyping</a>
-<a id="775" class="Keyword">import</a> <a id="782" href="CBPV.Base.Semantics.html" class="Module">CBPV.Base.Semantics</a>
-<a id="802" class="Keyword">import</a> <a id="809" href="CBPV.Base.Determinism.html" class="Module">CBPV.Base.Determinism</a>
-<a id="831" class="Keyword">import</a> <a id="838" href="CBPV.Base.SemanticTyping.html" class="Module">CBPV.Base.SemanticTyping</a>
-<a id="863" class="Keyword">import</a> <a id="870" href="CBPV.Base.TypeSoundness.html" class="Module">CBPV.Base.TypeSoundness</a>
-<a id="894" class="Keyword">import</a> <a id="901" href="CBPV.Base.Adequacy.html" class="Module">CBPV.Base.Adequacy</a>
-<a id="920" class="Keyword">import</a> <a id="927" href="CBN.Base.Translation.html" class="Module">CBN.Base.Translation</a>
-<a id="948" class="Keyword">import</a> <a id="955" href="CBV.Base.Translation.html" class="Module">CBV.Base.Translation</a>
+<a id="732" class="Keyword">import</a> <a id="739" href="CBPV.Effects.Determinism.html" class="Module">CBPV.Effects.Determinism</a> <a id="764" class="Comment">-- Operational semantics are deterministic</a>
+
+<a id="808" class="Comment">{- Section 2.3 -}</a>
+
+<a id="827" class="Keyword">import</a> <a id="834" href="CBPV.Effects.SemanticTyping.html" class="Module">CBPV.Effects.SemanticTyping</a> <a id="862" class="Comment">-- Logical relation + semantic typing rules</a>
+
+<a id="907" class="Keyword">import</a> <a id="914" href="CBPV.Effects.EffectSoundness.html" class="Module">CBPV.Effects.EffectSoundness</a> <a id="943" class="Comment">-- Type-and-effect system accurately bounds</a>
+                                    <a id="1023" class="Comment">-- effects at runtime</a>
+
+<a id="1046" class="Comment">{- Section 2.4 -}</a>
+
+<a id="1065" class="Keyword">import</a> <a id="1072" href="CBV.Effects.Translation.html" class="Module">CBV.Effects.Translation</a>  <a id="1097" class="Comment">-- Standard CBV translation (extended with</a>
+                                <a id="1172" class="Comment">-- effects) is type-and-effect preserving</a>
+
+<a id="1215" class="Keyword">import</a> <a id="1222" href="CBN.Monadic.Translation.html" class="Module">CBN.Monadic.Translation</a> <a id="1246" class="Comment">-- Standard CBN translation (extended with graded</a>
+                               <a id="1327" class="Comment">-- monads) is type-and-effect preserving</a>
+
+<a id="1369" class="Keyword">import</a> <a id="1376" href="CBV.Monadic.Translation.html" class="Module">CBV.Monadic.Translation</a> <a id="1400" class="Comment">-- Standard CBV translation (now extended with</a>
+                               <a id="1478" class="Comment">-- graded monads) is type-and-effect preserving</a>
+
+<a id="1527" class="Comment">{- Section 2: Extra -}</a>
+
+<a id="1551" class="Keyword">import</a> <a id="1558" href="CBPV.Effects.Adequacy.html" class="Module">CBPV.Effects.Adequacy</a> <a id="1580" class="Comment">-- Evaluation in environment-based big-step</a>
+                             <a id="1653" class="Comment">-- operational semantics implies multi-step</a>
+                             <a id="1726" class="Comment">-- reduction in substitution-based small-step</a>
+                             <a id="1801" class="Comment">-- semantics (with agreeing effects)</a>
+
+<a id="1839" class="Comment">{- Extra -}</a>
+
+<a id="1852" class="Comment">-- These are the same results as presented in section 2, though without effects.</a>
+<a id="1933" class="Comment">-- They are adapted from &quot;Call-by-push-value in Coq: operational, equational,</a>
+<a id="2011" class="Comment">-- and denotational theory&quot; (CPP 2019)</a>
+
+<a id="2051" class="Keyword">import</a> <a id="2058" href="CBPV.Base.SyntacticTyping.html" class="Module">CBPV.Base.SyntacticTyping</a>
+<a id="2084" class="Keyword">import</a> <a id="2091" href="CBPV.Base.Semantics.html" class="Module">CBPV.Base.Semantics</a>
+<a id="2111" class="Keyword">import</a> <a id="2118" href="CBPV.Base.Determinism.html" class="Module">CBPV.Base.Determinism</a>
+<a id="2140" class="Keyword">import</a> <a id="2147" href="CBPV.Base.SemanticTyping.html" class="Module">CBPV.Base.SemanticTyping</a>
+<a id="2172" class="Keyword">import</a> <a id="2179" href="CBPV.Base.TypeSoundness.html" class="Module">CBPV.Base.TypeSoundness</a>
+<a id="2203" class="Keyword">import</a> <a id="2210" href="CBN.Base.Translation.html" class="Module">CBN.Base.Translation</a>
+<a id="2231" class="Keyword">import</a> <a id="2238" href="CBV.Base.Translation.html" class="Module">CBV.Base.Translation</a>
+<a id="2259" class="Keyword">import</a> <a id="2266" href="CBPV.Base.Adequacy.html" class="Module">CBPV.Base.Adequacy</a>
 </pre></body></html>
